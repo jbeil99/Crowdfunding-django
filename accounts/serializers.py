@@ -1,21 +1,24 @@
 from rest_framework import serializers
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, authenticate
 import re
+from djoser.serializers import UserCreateSerializer, UserSerializer as BaseUserSerializer
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 User = get_user_model()
 
-class UserRegistrationSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+class UserRegistrationSerializer(UserCreateSerializer):
     confirm_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    mobile_phone = serializers.CharField(required=True)
+    profile_picture = serializers.ImageField(required=False)
     
-    class Meta:
+    class Meta(UserCreateSerializer.Meta):
         model = User
-        fields = ['first_name', 'last_name', 'email', 'password', 'confirm_password', 'mobile_phone', 'profile_picture']
+        fields = ['first_name', 'last_name', 'email', 'password', 'confirm_password', 
+                 'mobile_phone', 'profile_picture']
         extra_kwargs = {
             'first_name': {'required': True},
             'last_name': {'required': True},
-            'email': {'required': True},
+            'password': {'write_only': True},
         }
     
     def validate_mobile_phone(self, value):
@@ -24,10 +27,11 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Please enter a valid Egyptian phone number.")
         return value
     
-    def validate(self, data):
-        if data['password'] != data['confirm_password']:
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        if attrs['password'] != attrs['confirm_password']:
             raise serializers.ValidationError({"confirm_password": "Passwords don't match"})
-        return data
+        return attrs
     
     def create(self, validated_data):
         user = User.objects.create_user(
@@ -42,14 +46,32 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         )
         return user
 
-
-
+class UserSerializer(BaseUserSerializer):
+    class Meta(BaseUserSerializer.Meta):
+        model = User
+        fields = ['id', 'email', 'first_name', 'last_name', 
+                 'mobile_phone', 'profile_picture', 'is_active']
+        read_only_fields = ['id', 'email', 'is_active']
 
 class LoginSerializer(TokenObtainPairSerializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+    
     def validate(self, attrs):
+        user = authenticate(
+            email=attrs.get('email'),
+            password=attrs.get('password')
+        )
+        
+        if not user:
+            raise serializers.ValidationError({
+                'detail': 'Invalid email or password.'
+            })
+            
+        if not user.is_active:
+            raise serializers.ValidationError({
+                'detail': 'Account is not activated.'
+            })
+            
         data = super().validate(attrs)
-        if not self.user.is_active:
-            raise serializers.ValidationError(
-                {"error": "Please activate your account first."}
-            )
         return data
