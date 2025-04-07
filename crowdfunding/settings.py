@@ -56,7 +56,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'accounts.middleware.LoginCheckMiddleware'
+    # 'accounts.middleware.LoginCheckMiddleware'
 ]
 
 CORS_ALLOWED_ORIGINS = [
@@ -142,16 +142,16 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # REST FRAMEWORK
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
-    ),
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ]
-}
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES': (
+#         'rest_framework_simplejwt.authentication.JWTAuthentication',
+#         'rest_framework.authentication.SessionAuthentication',
+#         'rest_framework.authentication.BasicAuthentication',
+#     ),
+#     'DEFAULT_PERMISSION_CLASSES': [
+#         'rest_framework.permissions.IsAuthenticated',
+#     ]
+# }
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
@@ -165,7 +165,12 @@ SIMPLE_JWT = {
     'TOKEN_TYPE_CLAIM': 'token_type',
 }
 
+FRONTEND_URL = 'http://localhost:3000'
+
 DJOSER = {
+    'EMAIL_FRONTEND_DOMAIN': FRONTEND_URL.replace('http://', ''),
+    'EMAIL_FRONTEND_PROTOCOL': 'http',
+    'EMAIL_FRONTEND_SITE_NAME': 'Crowdfunding',
     'LOGIN_FIELD': 'email',
     'USER_CREATE_PASSWORD_RETYPE': True,
     'USERNAME_CHANGED_EMAIL_CONFIRMATION': True,
@@ -191,7 +196,6 @@ DJOSER = {
     }
 }
 
-# Cutom user model
 AUTH_USER_MODEL = 'accounts.User'
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -203,6 +207,9 @@ EMAIL_HOST_USER = 'hussin25soli@gmail.com'
 EMAIL_HOST_PASSWORD = 'uksm zftd mbcf jnsy'
 DEFAULT_FROM_EMAIL = 'hussin25soli@gmail.com'
 
-FRONTEND_URL = 'http://localhost:3000'
 
-PASSWORD_RESET_TIMEOUT = 2  # 24 hours
+PASSWORD_RESET_TIMEOUT = 86400  
+
+# Media files configuration
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
