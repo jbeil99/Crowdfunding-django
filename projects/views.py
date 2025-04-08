@@ -58,8 +58,10 @@ class ProjectDetailAPIView(APIView):
     
     def delete(self, request, pk):
         project = self.get_object(pk)
+        serializer = ProjectStoreSerializer(project)
+        data = serializer.data
         project.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(data,status=status.HTTP_200_OK)
 
 
 class ProjectImageUploadAPIView(APIView):
@@ -81,13 +83,6 @@ class ProjectImageUploadAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class ImageListAPIView(APIView):
-    def get(self, request):
-        images = ProjectImages.objects.all()
-        serializer = ImageSerializer(images, many=True)
-        return Response(serializer.data)
-
-
 class ImageDetailAPIView(APIView):
     def get_object(self, pk):
         return get_object_or_404(ProjectImages, pk=pk)
@@ -103,22 +98,59 @@ class ImageDetailAPIView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
     
 
-class CommentsListAPIView(APIView):
-    def get(self, request):
-        comments =  Comments.objects.all()
-        serializer = CommentSerializer(comments, many=True)
-        return Response(serializer.data)
+class CommentStore(APIView):    
+    def post(self, request):
+        serialzier = CommentSerializer(data=request.data)
+        print(request.data)
+        if serialzier.is_valid():
+            comment = serialzier.save()
+            result_serializer = CommentSerializer(comment)
+            return Response(result_serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serialzier.errors, status=status.HTTP_400_BAD_REQUEST)
+
     
+
 class CommentDetailAPIView(APIView):
     def get_object(self, pk):
         return get_object_or_404(Comments, pk=pk)
     
     def get(self, request, pk):
         comment = self.get_object(pk)
-        serializer = ImageSerializer(comment)
+        serializer = CommentSerializer(comment)
         return Response(serializer.data)
     
     def delete(self, request, pk):
         comment = self.get_object(pk)
+        serializer =CommentSerializer(comment)
+        data = serializer.data
         comment.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(data,status=status.HTTP_200_OK)
+
+
+class RattingStore(APIView):    
+    def post(self, request):
+        serialzier = RattingSerializer(data=request.data)
+        print(request.data)
+        if serialzier.is_valid():
+            rate = serialzier.save()
+            result_serializer = RattingSerializer(rate)
+            return Response(result_serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serialzier.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    
+
+class RattingDetailAPIView(APIView):
+    def get_object(self, pk):
+        return get_object_or_404(Ratting, pk=pk)
+    
+    def get(self, request, pk):
+        rate = self.get_object(pk)
+        serializer = RattingSerializer(rate)
+        return Response(serializer.data)
+    
+    def delete(self, request, pk):
+        rate = self.get_object(pk)
+        serializer =RattingSerializer(rate)
+        data = serializer.data
+        rate.delete()
+        return Response(data,status=status.HTTP_200_OK)

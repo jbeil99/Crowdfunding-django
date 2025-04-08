@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import Project, ProjectImages, Comments, Ratting
 from taggit.serializers import (TagListSerializerField, TaggitSerializer)
 from accounts.serializers import UserSerializer
+
 class ImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectImages
@@ -13,19 +14,38 @@ class CommentSerializer(serializers.ModelSerializer):
         model = Comments
         fields = "__all__"
         read_only_fields = ['id', 'created_at']
+        extra_kwargs = {
+            'body': {'required': True}
+        }
+    
+    def validate_body(self, value):
+        if len(value) <= 0:
+            raise serializers.ValidationError('Commnet Cant be empty')
+        return value
 
 class RattingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ratting
         fields = "__all__"
         read_only_fields = ['id', 'created_at']
+        extra_kwargs = {
+            'rate': {'required': True}
+        }
+    
+    def validate_body(self, value):
+        if value < 0:
+            raise serializers.ValidationError('rate Cant less than zero')
+        if value > 5:
+            raise serializers.ValidationError('rate Cant more than 5.0')
+        return value
+        
 
 
 class ProjectDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
     images = ImageSerializer(many=True, read_only=True)
     tags = TagListSerializerField()  
     comments = CommentSerializer(many=True, read_only=True)
-    ratting = CommentSerializer(many=True, read_only=True)
+    ratting = RattingSerializer(many=True, read_only=True)
     user = UserSerializer()
 
     class Meta:
@@ -97,3 +117,6 @@ class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
                 
         return project
 
+
+
+# TODO: Add serializer for admin view

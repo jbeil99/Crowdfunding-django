@@ -4,6 +4,7 @@ from accounts.models import User
 from decimal import Decimal
 from django.core.validators import MinValueValidator, MaxValueValidator
 
+
 class Project(models.Model):
     title = models.CharField(max_length=200)
     details = models.TextField()
@@ -13,7 +14,7 @@ class Project(models.Model):
     end_time = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE,  related_name='user')
+    user = models.ForeignKey(User, on_delete=models.CASCADE,  related_name='projects')
     is_featured = models.BooleanField(default=False) 
 
     def __str__(self):
@@ -61,4 +62,33 @@ class Comments(models.Model):
 
 
 
+class Donation(models.Model):
+    user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='donations')
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='donations')
+    amount = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        validators=[MinValueValidator(Decimal('1.0'))]
+    )
 
+    def __str__(self):
+        return f'{self.user} donted to ${self.project}'
+
+
+class CommentsReports(models.Model):
+    user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='reports_comments')
+    comment = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='reports_comments')
+    details = models.TextField()
+    
+    def __str__(self):
+        return f'{self.user} reported ${self.comment}'
+
+
+
+class ProjectsReports(models.Model):
+    user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='reports')
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='reports')
+    details = models.TextField()
+    
+    def __str__(self):
+        return f'{self.user} reported ${self.project}'
