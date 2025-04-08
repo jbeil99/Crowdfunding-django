@@ -12,25 +12,40 @@ from .serializers import (
     RattingSerializer,
     CommentsReportsSerializer,
     ProjectsReportsSerializer,
+    ProjectCancellationSerializer,
 )
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.pagination import PageNumberPagination
+from .permissions import IsOwnerOrAdmin
 
 
 class ProjectListCreateAPIView(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
     def get(self, request):
         if request.query_params.get("is_featured") == "true":
-            projects = Project.objects.filter(is_featured=True)
+            projects = Project.getfeaturedProjects()
+        elif request.query_params.get("category") is not None:
+            projects = Project.getProjectsByCategory(
+                request.query_params.get("category")
+            )
         else:
             projects = Project.objects.all()
 
-        serializer = ProjectStoreSerializer(projects, many=True)
-        return Response(serializer.data)
+        paginator = PageNumberPagination()
+        paginated_Projects = paginator.paginate_queryset(projects, request)
+        serializer = ProjectStoreSerializer(paginated_Projects, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
     def post(self, request):
         project_serializer = ProjectStoreSerializer(data=request.data)
         if project_serializer.is_valid():
-            project = project_serializer.save()
+            project = project_serializer.save(user=request.user)
             result_serializer = ProjectDetailSerializer(project)
             return Response(result_serializer.data, status=status.HTTP_201_CREATED)
         return Response(project_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -38,6 +53,11 @@ class ProjectListCreateAPIView(APIView):
 
 class ProjectDetailAPIView(APIView):
     parser_classes = [MultiPartParser, FormParser]
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [AllowAny()]
+        return [IsAuthenticated(), IsOwnerOrAdmin()]
 
     def get_object(self, pk):
         return get_object_or_404(Project, pk=pk)
@@ -75,6 +95,7 @@ class ProjectDetailAPIView(APIView):
 
 class ProjectImageUploadAPIView(APIView):
     parser_classes = [MultiPartParser, FormParser]
+    permission_classes = [IsAuthenticated(), IsOwnerOrAdmin()]
 
     def post(self, request, pk):
         project = get_object_or_404(Project, pk=pk)
@@ -95,6 +116,11 @@ class ProjectImageUploadAPIView(APIView):
 
 
 class ImageDetailAPIView(APIView):
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [AllowAny()]
+        return [IsAuthenticated(), IsOwnerOrAdmin()]
+
     def get_object(self, pk):
         return get_object_or_404(ProjectImages, pk=pk)
 
@@ -111,7 +137,10 @@ class ImageDetailAPIView(APIView):
 
 # Comments
 class CommentStore(APIView):
+    permission_classes = [IsAuthenticated()]
+
     def post(self, request):
+        request["user"] = request.user.id
         serialzier = CommentSerializer(data=request.data)
         print(request.data)
         if serialzier.is_valid():
@@ -122,6 +151,11 @@ class CommentStore(APIView):
 
 
 class CommentDetailAPIView(APIView):
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [AllowAny()]
+        return [IsAuthenticated(), IsOwnerOrAdmin()]
+
     def get_object(self, pk):
         return get_object_or_404(Comments, pk=pk)
 
@@ -140,7 +174,10 @@ class CommentDetailAPIView(APIView):
 
 # Ratting
 class RattingStore(APIView):
+    permission_classes = [IsAuthenticated()]
+
     def post(self, request):
+        request["user"] = request.user.id
         serialzier = RattingSerializer(data=request.data)
         print(request.data)
         if serialzier.is_valid():
@@ -151,6 +188,11 @@ class RattingStore(APIView):
 
 
 class RattingDetailAPIView(APIView):
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [AllowAny()]
+        return [IsAuthenticated(), IsOwnerOrAdmin()]
+
     def get_object(self, pk):
         return get_object_or_404(Ratting, pk=pk)
 
@@ -169,7 +211,10 @@ class RattingDetailAPIView(APIView):
 
 # comments Reports
 class CommentsReportsStore(APIView):
+    permission_classes = [IsAuthenticated()]
+
     def post(self, request):
+        request["user"] = request.user.id
         serialzier = CommentsReportsSerializer(data=request.data)
         if serialzier.is_valid():
             report = serialzier.save()
@@ -179,6 +224,11 @@ class CommentsReportsStore(APIView):
 
 
 class CommentsReportsDetailAPIView(APIView):
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [AllowAny()]
+        return [IsAuthenticated(), IsOwnerOrAdmin()]
+
     def get_object(self, pk):
         return get_object_or_404(Ratting, pk=pk)
 
@@ -197,7 +247,10 @@ class CommentsReportsDetailAPIView(APIView):
 
 # project Reports
 class ProjectReportsStore(APIView):
+    permission_classes = [IsAuthenticated()]
+
     def post(self, request):
+        request["user"] = request.user.id
         serialzier = ProjectsReportsSerializer(data=request.data)
         if serialzier.is_valid():
             report = serialzier.save()
@@ -207,6 +260,8 @@ class ProjectReportsStore(APIView):
 
 
 class ProjectReportsDetailAPIView(APIView):
+    permission_classes = [IsAuthenticated(), IsOwnerOrAdmin()]
+
     def get_object(self, pk):
         return get_object_or_404(Ratting, pk=pk)
 
@@ -221,3 +276,23 @@ class ProjectReportsDetailAPIView(APIView):
         data = serializer.data
         report.delete()
         return Response(data, status=status.HTTP_200_OK)
+
+
+class CancelProjectView(APIView):
+    permission_classes = [IsAuthenticated(), IsOwnerOrAdmin()]
+
+    def post(self, request, pk):
+        print(request)
+        project = get_object_or_404(Project, pk=pk)
+        serializer = ProjectCancellationSerializer(
+            data=request.data, context={"request": request, "project": project}
+        )
+
+        if serializer.is_valid():
+            project.is_active = False
+            project.save()
+            return Response(
+                {"message": "Project successfully canceled"}, status=status.HTTP_200_OK
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

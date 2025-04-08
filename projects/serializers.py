@@ -83,7 +83,7 @@ class ProjectDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
             "comments",
             "ratting",
         ]
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "created_at", "user"]
 
 
 class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
@@ -108,7 +108,7 @@ class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
             "user",
             "tags",
         ]
-        read_only_fields = ["id"]
+        read_only_fields = ["id", "created_at", "user"]
 
     def validate_title(self, value):
         if len(value) < 5:
@@ -167,6 +167,25 @@ class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
                 ProjectImages.objects.create(project=project, image=image_data)
 
         return project
+
+
+class ProjectCancellationSerializer(serializers.Serializer):
+    reason = serializers.CharField(required=False)
+
+    def validate(self, data):
+        project = self.context.get("project")
+        user = self.context.get("request").user
+        if project.user != user:
+            raise serializers.ValidationError(
+                "Only the project owner can cancel a project."
+            )
+
+        if not project.canBeCanceld():
+            raise serializers.ValidationError(
+                "Cannot cancel project that has reached 25% or more of its funding goal."
+            )
+
+        return data
 
 
 # TODO: Add serializer for admin view to get reports

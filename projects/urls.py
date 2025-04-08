@@ -12,6 +12,7 @@ from .views import (
     CommentsReportsStore,
     ProjectReportsStore,
     ProjectReportsDetailAPIView,
+    CancelProjectView,
 )
 
 urlpatterns = [
@@ -54,5 +55,10 @@ urlpatterns = [
         "projects/comments/reports/<int:pk>",
         CommentsReportsDetailAPIView.as_view(),
         name="comments-reports-detail",
+    ),
+    path(
+        "projects/<int:pk>/cancel/",
+        CancelProjectView.as_view(),
+        name="project-cancel",
     ),
 ]
