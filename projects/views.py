@@ -28,14 +28,20 @@ class ProjectListCreateAPIView(APIView):
         return [IsAuthenticated()]
 
     def get(self, request):
-        if request.query_params.get("is_featured") == "true":
-            projects = Project.getfeaturedProjects()
-        elif request.query_params.get("category") is not None:
-            projects = Project.getProjectsByCategory(
-                request.query_params.get("category")
-            )
-        else:
-            projects = Project.objects.all()
+        is_featured = request.query_params.get("is_featured")
+        category = request.query_params.get("category")
+        user = request.query_params.get("user")
+        limit = request.query_params.get("limit")
+        is_top = request.query_params.get("is_top")
+        tags = request.query_params.getlist("tags")
+        projects = Project.filterProjects(
+            is_featured=is_featured,
+            category=category,
+            tags=tags,
+            user_id=user,
+            limit=limit,
+            is_top=is_top,
+        )
 
         paginator = PageNumberPagination()
         paginated_Projects = paginator.paginate_queryset(projects, request)

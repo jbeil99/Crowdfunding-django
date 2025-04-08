@@ -82,6 +82,7 @@ class ProjectDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
             "tags",
             "comments",
             "ratting",
+            "is_featured",
         ]
         read_only_fields = ["id", "created_at", "user"]
 
@@ -94,6 +95,7 @@ class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
     )
 
     tags = TagListSerializerField(required=False)
+    rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
@@ -107,8 +109,13 @@ class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
             "end_time",
             "user",
             "tags",
+            "is_featured",
+            "rating",
         ]
         read_only_fields = ["id", "created_at", "user"]
+
+    def get_rating(slef, obj):
+        return obj.get_average_rating()
 
     def validate_title(self, value):
         if len(value) < 5:

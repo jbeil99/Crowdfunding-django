@@ -3,6 +3,7 @@ from taggit.managers import TaggableManager
 from accounts.models import User
 from decimal import Decimal
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.shortcuts import get_object_or_404
 
 
 class Category(models.Model):
@@ -58,6 +59,56 @@ class Project(models.Model):
     @classmethod
     def getUserProjects(cls, user):
         return cls.objects.filter(user=user)
+
+    @classmethod
+    def getTopRatedProjects(cls, limit=5):
+        return cls.objects.annotate(avg_rating=models.Avg("ratting__rate")).order_by(
+            "-avg_rating"
+        )[:limit]
+
+    @classmethod
+    def filterProjects(
+        cls,
+        is_featured=None,
+        category=None,
+        tags=None,
+        user_id=None,
+        limit=None,
+        is_top=None,
+    ):
+        if user_id:
+            user = get_object_or_404(User, pk=user_id)
+            if user.is_staff:
+                print("asdasd")
+                projects = cls.objects.all()
+            else:
+                projects = cls.getUserProjects(user)
+        else:
+            projects = cls.getAvtiveProjects()
+
+        if is_featured == "true":
+            projects = projects.filter(is_featured=True)
+        if category:
+            try:
+                if category:
+                    category_id = int(category)
+                    projects = projects.filter(category=category_id)
+            except (ValueError, TypeError):
+                projects = projects.filter(category=-1)  # TODO Check Later
+
+        if tags:
+            projects = projects.filter(tags__name__in=tags)
+        if limit:
+            try:
+                limit = int(limit)
+                projects = projects[:limit]
+            except (ValueError, TypeError):
+                pass
+
+        if is_top == "true":
+            return cls.getTopRatedProjects()
+
+        return projects
 
     def canBeCanceld(self):
         total_donations = (
