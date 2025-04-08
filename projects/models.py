@@ -70,6 +70,7 @@ class Donation(models.Model):
         decimal_places=2, 
         validators=[MinValueValidator(Decimal('1.0'))]
     )
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f'{self.user} donted to ${self.project}'
@@ -79,7 +80,8 @@ class CommentsReports(models.Model):
     user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='reports_comments')
     comment = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='reports_comments')
     details = models.TextField()
-    
+    created_at = models.DateTimeField(auto_now_add=True)
+
     def __str__(self):
         return f'{self.user} reported ${self.comment}'
 
@@ -89,6 +91,7 @@ class ProjectsReports(models.Model):
     user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='reports')
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='reports')
     details = models.TextField()
-    
+    created_at = models.DateTimeField(auto_now_add=True)
+
     def __str__(self):
         return f'{self.user} reported ${self.project}'
