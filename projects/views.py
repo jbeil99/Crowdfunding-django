@@ -154,3 +154,32 @@ class RattingDetailAPIView(APIView):
         data = serializer.data
         rate.delete()
         return Response(data,status=status.HTTP_200_OK)
+
+
+class RattingStore(APIView):    
+    def post(self, request):
+        serialzier = RattingSerializer(data=request.data)
+        print(request.data)
+        if serialzier.is_valid():
+            rate = serialzier.save()
+            result_serializer = RattingSerializer(rate)
+            return Response(result_serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serialzier.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    
+
+class RattingDetailAPIView(APIView):
+    def get_object(self, pk):
+        return get_object_or_404(Ratting, pk=pk)
+    
+    def get(self, request, pk):
+        rate = self.get_object(pk)
+        serializer = RattingSerializer(rate)
+        return Response(serializer.data)
+    
+    def delete(self, request, pk):
+        rate = self.get_object(pk)
+        serializer =RattingSerializer(rate)
+        data = serializer.data
+        rate.delete()
+        return Response(data,status=status.HTTP_200_OK)

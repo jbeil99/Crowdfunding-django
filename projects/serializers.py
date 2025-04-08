@@ -32,13 +32,14 @@ class RattingSerializer(serializers.ModelSerializer):
             'rate': {'required': True}
         }
     
-    def validate_body(self, value):
+    def validate_rate(self, value):
         if value < 0:
             raise serializers.ValidationError('rate Cant less than zero')
         if value > 5:
             raise serializers.ValidationError('rate Cant more than 5.0')
         return value
-        
+
+
 
 
 class ProjectDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
