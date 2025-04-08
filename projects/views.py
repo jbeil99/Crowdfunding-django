@@ -33,7 +33,9 @@ class ProjectListCreateAPIView(APIView):
         user = request.query_params.get("user")
         limit = request.query_params.get("limit")
         is_top = request.query_params.get("is_top")
-        tags = request.query_params.getlist("tags")
+        latest = request.query_params.get("latest")
+        search = request.query_params.get("search")
+        tags = request.query_params.get("tags")
         projects = Project.filterProjects(
             is_featured=is_featured,
             category=category,
@@ -41,6 +43,8 @@ class ProjectListCreateAPIView(APIView):
             user_id=user,
             limit=limit,
             is_top=is_top,
+            latest=latest,
+            search=search,
         )
 
         paginator = PageNumberPagination()

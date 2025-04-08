@@ -75,6 +75,8 @@ class Project(models.Model):
         user_id=None,
         limit=None,
         is_top=None,
+        latest=None,
+        search=None,
     ):
         if user_id:
             user = get_object_or_404(User, pk=user_id)
@@ -97,7 +99,23 @@ class Project(models.Model):
                 projects = projects.filter(category=-1)  # TODO Check Later
 
         if tags:
-            projects = projects.filter(tags__name__in=tags)
+            projects = projects.filter(tags__name__in=tags.split(","))
+
+        if search:
+            projects = projects.filter(
+                models.Q(title__icontains=search) | models.Q(details__icontains=search)
+            )
+
+        if latest == "true":
+            if limit:
+                try:
+                    limit = int(limit)
+                    projects = projects.order_by("-created_at")[:limit]
+                except (ValueError, TypeError):
+                    pass
+            else:
+                projects = projects.order_by("-created_at")[:5]
+
         if limit:
             try:
                 limit = int(limit)
