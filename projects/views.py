@@ -10,7 +10,7 @@ class ProjectListCreateAPIView(APIView):
     parser_classes = [MultiPartParser, FormParser]
     
     def get(self, request):
-        if request.query_params['is_featured'] == 'true':
+        if request.query_params.get('is_featured') == 'true':
             projects =Project.objects.filter(is_featured=True)
         else:
             projects = Project.objects.all()
@@ -42,6 +42,15 @@ class ProjectDetailAPIView(APIView):
     def put(self, request, pk):
         project = self.get_object(pk)
         serializer = ProjectWithImagesSerializer(project, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            result_serializer = ProjectSerializer(project)
+            return Response(result_serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def patch(self, request, pk): 
+        project = self.get_object(pk)
+        serializer = ProjectWithImagesSerializer(project, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             result_serializer = ProjectSerializer(project)

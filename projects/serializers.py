@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Project, ProjectImages
+from taggit.serializers import (TagListSerializerField, TaggitSerializer)
 
 class ImageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -7,24 +8,28 @@ class ImageSerializer(serializers.ModelSerializer):
         fields = ['id', 'image', 'title', 'uploaded_at']
         read_only_fields = ['id', 'uploaded_at']
 
-class ProjectSerializer(serializers.ModelSerializer):
+class ProjectSerializer(TaggitSerializer, serializers.ModelSerializer):
     images = ImageSerializer(many=True, read_only=True)
-    
+    tags = TagListSerializerField()  
+
     class Meta:
         model = Project
-        fields = ['id', 'title', 'details', 'created_at', 'images', 'total_target',  'start_time', 'end_time', 'user']
+        fields = ['id', 'title', 'details', 'created_at', 'images', 'total_target',  'start_time', 'end_time', 'user', 'tags']
         read_only_fields = ['id', 'created_at']
 
-class ProjectWithImagesSerializer(serializers.ModelSerializer):
+class ProjectWithImagesSerializer(TaggitSerializer,serializers.ModelSerializer):
     images = serializers.ListField(
         child=serializers.ImageField(allow_empty_file=False, use_url=False),
         write_only=True, required=False
     )
 
+    tags = TagListSerializerField(required=False) 
+
     class Meta:
         model = Project
-        fields = ['id', 'title', 'details', 'images',  'total_target',  'start_time', 'end_time', 'user']
+        fields = ['id', 'title', 'details', 'images', 'total_target', 'start_time', 'end_time', 'user', 'tags']
         read_only_fields = ['id']
+
     
     def validate_title(self, value):
         if len(value) < 5:
@@ -63,8 +68,12 @@ class ProjectWithImagesSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         images_data = validated_data.pop('images', None)
+        tags_data = validated_data.pop('tags', []) 
         project = Project.objects.create(**validated_data)
         
+        if tags_data:
+            project.tags.set(tags_data)
+
         if images_data:
             for image_data in images_data:
                 ProjectImages.objects.create(project=project, image=image_data)
