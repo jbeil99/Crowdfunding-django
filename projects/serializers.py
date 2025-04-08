@@ -1,23 +1,40 @@
 from rest_framework import serializers
-from .models import Project, ProjectImages
+from .models import Project, ProjectImages, Comments, Ratting
 from taggit.serializers import (TagListSerializerField, TaggitSerializer)
-
+from accounts.serializers import UserSerializer
 class ImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectImages
         fields = ['id', 'image', 'title', 'uploaded_at']
         read_only_fields = ['id', 'uploaded_at']
 
-class ProjectSerializer(TaggitSerializer, serializers.ModelSerializer):
+class CommentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comments
+        fields = "__all__"
+        read_only_fields = ['id', 'created_at']
+
+class RattingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ratting
+        fields = "__all__"
+        read_only_fields = ['id', 'created_at']
+
+
+class ProjectDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
     images = ImageSerializer(many=True, read_only=True)
     tags = TagListSerializerField()  
+    comments = CommentSerializer(many=True, read_only=True)
+    ratting = CommentSerializer(many=True, read_only=True)
+    user = UserSerializer()
 
     class Meta:
         model = Project
-        fields = ['id', 'title', 'details', 'created_at', 'images', 'total_target',  'start_time', 'end_time', 'user', 'tags']
+        fields = ['id', 'title', 'details', 'created_at', 'images', 'total_target',  'start_time', 'end_time', 'user', 'tags', 'comments', 'ratting']
         read_only_fields = ['id', 'created_at']
 
-class ProjectWithImagesSerializer(TaggitSerializer,serializers.ModelSerializer):
+
+class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
     images = serializers.ListField(
         child=serializers.ImageField(allow_empty_file=False, use_url=False),
         write_only=True, required=False
@@ -79,3 +96,4 @@ class ProjectWithImagesSerializer(TaggitSerializer,serializers.ModelSerializer):
                 ProjectImages.objects.create(project=project, image=image_data)
                 
         return project
+
