@@ -14,3 +14,8 @@ dependencies = [
     "pillow>=11.1.0",
     "psycopg2-binary>=2.9.10",
 ]
+
+[dependency-groups]
+dev = [
+    "python-dotenv>=1.1.0",
+]
