@@ -13,6 +13,8 @@ from .views import (
     ProjectReportsStore,
     ProjectReportsDetailAPIView,
     CancelProjectView,
+    DonationStore,
+    DonationDetailAPIView,
 )
 
 urlpatterns = [
@@ -60,5 +62,11 @@ urlpatterns = [
         "projects/<int:pk>/cancel/",
         CancelProjectView.as_view(),
         name="project-cancel",
+    ),
+    path("projects/donation", DonationStore.as_view(), name="project-donation-store"),
+    path(
+        "projects/donation/<int:pk>",
+        DonationDetailAPIView.as_view(),
+        name="project-donation-detail",
     ),
 ]

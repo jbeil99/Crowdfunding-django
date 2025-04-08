@@ -13,12 +13,14 @@ from .serializers import (
     CommentsReportsSerializer,
     ProjectsReportsSerializer,
     ProjectCancellationSerializer,
+    DonationSerializer,
 )
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.pagination import PageNumberPagination
 from .permissions import IsOwnerOrAdmin
 
 
+# TODO: Change the payload user  to the request user
 class ProjectListCreateAPIView(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
@@ -260,7 +262,6 @@ class ProjectReportsStore(APIView):
     permission_classes = [IsAuthenticated()]
 
     def post(self, request):
-        request["user"] = request.user.id
         serialzier = ProjectsReportsSerializer(data=request.data)
         if serialzier.is_valid():
             report = serialzier.save()
@@ -289,10 +290,9 @@ class ProjectReportsDetailAPIView(APIView):
 
 
 class CancelProjectView(APIView):
-    permission_classes = [IsAuthenticated(), IsOwnerOrAdmin()]
+    permission_classes = [IsAuthenticated, IsOwnerOrAdmin]
 
     def post(self, request, pk):
-        print(request)
         project = get_object_or_404(Project, pk=pk)
         serializer = ProjectCancellationSerializer(
             data=request.data, context={"request": request, "project": project}
@@ -306,3 +306,39 @@ class CancelProjectView(APIView):
             )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# Donation
+class DonationStore(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serialzier = DonationSerializer(data=request.data)
+        print(request.data)
+        if serialzier.is_valid():
+            rate = serialzier.save()
+            result_serializer = DonationSerializer(rate)
+            return Response(result_serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serialzier.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class DonationDetailAPIView(APIView):
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [AllowAny()]
+        return [IsAuthenticated(), IsOwnerOrAdmin()]
+
+    def get_object(self, pk):
+        return get_object_or_404(Ratting, pk=pk)
+
+    def get(self, request, pk):
+        rate = self.get_object(pk)
+        serializer = DonationSerializer(rate)
+        return Response(serializer.data)
+
+    # def delete(self, request, pk):
+    #     rate = self.get_object(pk)
+    #     serializer = RattingSerializer(rate)
+    #     data = serializer.data
+    #     rate.delete()
+    #     return Response(data, status=status.HTTP_200_OK)

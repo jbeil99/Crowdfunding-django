@@ -129,17 +129,16 @@ class Project(models.Model):
         return projects
 
     def canBeCanceld(self):
-        total_donations = (
-            self.donations.aggregate(total=models.Sum("amount"))["total"] or 0
-        )
-
-        return total_donations / self.total_target * 100 < 25
+        return self.get_total_donations() / self.total_target * 100 < 25
 
     def get_average_rating(self):
         average = self.ratting.aggregate(avg_rating=models.Avg("rate"))["avg_rating"]
         if average is not None:
             return round(average, 1)
         return 0.0
+
+    def get_total_donations(self):
+        return self.donations.aggregate(total=models.Sum("amount"))["total"]
 
 
 class ProjectImages(models.Model):

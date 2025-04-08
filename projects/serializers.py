@@ -6,6 +6,7 @@ from .models import (
     Ratting,
     CommentsReports,
     ProjectsReports,
+    Donation,
 )
 from taggit.serializers import TagListSerializerField, TaggitSerializer
 from accounts.serializers import UserSerializer
@@ -60,12 +61,26 @@ class ProjectsReportsSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at"]
 
 
+class DonationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Donation
+        fields = "__all__"
+        read_only_fields = ["id"]
+
+    def vaidate_amount(self, value):
+        if value <= 0:
+            serializers.ValidationError("Donation amount cant be less than 0")
+        return value
+
+
 class ProjectDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
     images = ImageSerializer(many=True, read_only=True)
     tags = TagListSerializerField()
     comments = CommentSerializer(many=True, read_only=True)
     ratting = RattingSerializer(many=True, read_only=True)
     user = UserSerializer()
+    donations = DonationSerializer(many=True, read_only=True)
+    total_donations = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
@@ -83,8 +98,13 @@ class ProjectDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
             "comments",
             "ratting",
             "is_featured",
+            "donations",
+            "total_donations",
         ]
         read_only_fields = ["id", "created_at", "user"]
+
+    def get_total_donations(self, obj):
+        return obj.get_total_donations()
 
 
 class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
@@ -96,6 +116,7 @@ class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
 
     tags = TagListSerializerField(required=False)
     rating = serializers.SerializerMethodField()
+    total_donations = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
@@ -111,11 +132,15 @@ class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
             "tags",
             "is_featured",
             "rating",
+            "total_donations",
         ]
         read_only_fields = ["id", "created_at", "user"]
 
     def get_rating(slef, obj):
         return obj.get_average_rating()
+
+    def get_total_donations(self, obj):
+        return obj.get_total_donations()
 
     def validate_title(self, value):
         if len(value) < 5:
