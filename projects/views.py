@@ -3,7 +3,16 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
-from .models import Project, ProjectImages, Comments, Ratting
+from .models import (
+    Project,
+    ProjectImages,
+    Comments,
+    Ratting,
+    Category,
+    Donation,
+    CommentsReports,
+    ProjectsReports,
+)
 from .serializers import (
     ProjectStoreSerializer,
     ProjectDetailSerializer,
@@ -14,8 +23,9 @@ from .serializers import (
     ProjectsReportsSerializer,
     ProjectCancellationSerializer,
     DonationSerializer,
+    CategorySerializer,
 )
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.pagination import PageNumberPagination
 from .permissions import IsOwnerOrAdmin
 
@@ -152,11 +162,9 @@ class CommentStore(APIView):
     permission_classes = [IsAuthenticated()]
 
     def post(self, request):
-        request["user"] = request.user.id
         serialzier = CommentSerializer(data=request.data)
-        print(request.data)
         if serialzier.is_valid():
-            comment = serialzier.save()
+            comment = serialzier.save(user=request.user)
             result_serializer = CommentSerializer(comment)
             return Response(result_serializer.data, status=status.HTTP_201_CREATED)
         return Response(serialzier.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -189,11 +197,9 @@ class RattingStore(APIView):
     permission_classes = [IsAuthenticated()]
 
     def post(self, request):
-        request["user"] = request.user.id
         serialzier = RattingSerializer(data=request.data)
-        print(request.data)
         if serialzier.is_valid():
-            rate = serialzier.save()
+            rate = serialzier.save(user=request.user)
             result_serializer = RattingSerializer(rate)
             return Response(result_serializer.data, status=status.HTTP_201_CREATED)
         return Response(serialzier.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -223,13 +229,13 @@ class RattingDetailAPIView(APIView):
 
 # comments Reports
 class CommentsReportsStore(APIView):
-    permission_classes = [IsAuthenticated()]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         request["user"] = request.user.id
         serialzier = CommentsReportsSerializer(data=request.data)
         if serialzier.is_valid():
-            report = serialzier.save()
+            report = serialzier.save(user=request.user)
             result_serializer = CommentsReportsSerializer(report)
             return Response(result_serializer.data, status=status.HTTP_201_CREATED)
         return Response(serialzier.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -242,7 +248,7 @@ class CommentsReportsDetailAPIView(APIView):
         return [IsAuthenticated(), IsOwnerOrAdmin()]
 
     def get_object(self, pk):
-        return get_object_or_404(Ratting, pk=pk)
+        return get_object_or_404(CommentsReports, pk=pk)
 
     def get(self, request, pk):
         report = self.get_object(pk)
@@ -264,17 +270,17 @@ class ProjectReportsStore(APIView):
     def post(self, request):
         serialzier = ProjectsReportsSerializer(data=request.data)
         if serialzier.is_valid():
-            report = serialzier.save()
+            report = serialzier.save(user=request.user)
             result_serializer = ProjectsReportsSerializer(report)
             return Response(result_serializer.data, status=status.HTTP_201_CREATED)
         return Response(serialzier.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ProjectReportsDetailAPIView(APIView):
-    permission_classes = [IsAuthenticated(), IsOwnerOrAdmin()]
+    permission_classes = [IsAuthenticated, IsOwnerOrAdmin]
 
     def get_object(self, pk):
-        return get_object_or_404(Ratting, pk=pk)
+        return get_object_or_404(ProjectsReports, pk=pk)
 
     def get(self, request, pk):
         report = self.get_object(pk)
@@ -314,9 +320,8 @@ class DonationStore(APIView):
 
     def post(self, request):
         serialzier = DonationSerializer(data=request.data)
-        print(request.data)
         if serialzier.is_valid():
-            rate = serialzier.save()
+            rate = serialzier.save(user=request.user)
             result_serializer = DonationSerializer(rate)
             return Response(result_serializer.data, status=status.HTTP_201_CREATED)
         return Response(serialzier.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -329,7 +334,7 @@ class DonationDetailAPIView(APIView):
         return [IsAuthenticated(), IsOwnerOrAdmin()]
 
     def get_object(self, pk):
-        return get_object_or_404(Ratting, pk=pk)
+        return get_object_or_404(Donation, pk=pk)
 
     def get(self, request, pk):
         rate = self.get_object(pk)
@@ -342,3 +347,28 @@ class DonationDetailAPIView(APIView):
     #     data = serializer.data
     #     rate.delete()
     #     return Response(data, status=status.HTTP_200_OK)
+
+
+# Cateory
+class CategoryAPIView(APIView):
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [AllowAny()]
+        return [IsAuthenticated(), IsAdminUser()]
+
+    def get(self, request):
+        categories = Category.objects.all()
+        serializer = CategorySerializer(categories, many=True)
+        print(serializer.data)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serialzier = CategorySerializer(data=request.data)
+        if serialzier.is_valid():
+            category = serialzier.save()
+            result = CategorySerializer(category)
+            return Response(result.data, status=status.HTTP_201_CREATED)
+        return Response(serialzier.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# TODO: some projects fields ony admin can change it ( may be a differnet serializer)

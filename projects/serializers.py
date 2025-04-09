@@ -7,6 +7,7 @@ from .models import (
     CommentsReports,
     ProjectsReports,
     Donation,
+    Category,
 )
 from taggit.serializers import TagListSerializerField, TaggitSerializer
 from accounts.serializers import UserSerializer
@@ -23,7 +24,7 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comments
         fields = "__all__"
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "created_at", "user"]
         extra_kwargs = {"body": {"required": True}}
 
     def validate_body(self, value):
@@ -36,7 +37,7 @@ class RattingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ratting
         fields = "__all__"
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "created_at", "user"]
         extra_kwargs = {"rate": {"required": True}}
 
     def validate_rate(self, value):
@@ -51,25 +52,57 @@ class CommentsReportsSerializer(serializers.ModelSerializer):
     class Meta:
         model = CommentsReports
         fields = "__all__"
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "created_at", "user"]
 
 
 class ProjectsReportsSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectsReports
         fields = "__all__"
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "created_at", "user"]
 
 
 class DonationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Donation
         fields = "__all__"
-        read_only_fields = ["id"]
+        read_only_fields = ["id", "user"]
 
     def vaidate_amount(self, value):
         if value <= 0:
             serializers.ValidationError("Donation amount cant be less than 0")
+        return value
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = "__all__"
+        read_only_fields = [
+            "id",
+            "created_at",
+        ]
+
+    def validate_title(self, value):
+        if len(value) < 5:
+            raise serializers.ValidationError(
+                "Title must be at least 5 characters long"
+            )
+        if len(value) > 250:
+            raise serializers.ValidationError(
+                "Title must be at most 250 characters long"
+            )
+        return value
+
+    def validate_description(self, value):
+        if len(value) < 20:
+            raise serializers.ValidationError(
+                "Details must be at least 20 characters long"
+            )
+        if len(value) > 2500:
+            raise serializers.ValidationError(
+                "Title must be at most 2500 characters long"
+            )
         return value
 
 
@@ -81,6 +114,7 @@ class ProjectDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
     user = UserSerializer()
     donations = DonationSerializer(many=True, read_only=True)
     total_donations = serializers.SerializerMethodField()
+    category = CategorySerializer()
 
     class Meta:
         model = Project
@@ -100,8 +134,16 @@ class ProjectDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
             "is_featured",
             "donations",
             "total_donations",
+            "category",
         ]
-        read_only_fields = ["id", "created_at", "user"]
+        read_only_fields = [
+            "id",
+            "created_at",
+            "user",
+            "donations",
+            "comments",
+            "ratting",
+        ]
 
     def get_total_donations(self, obj):
         return obj.get_total_donations()
@@ -133,6 +175,7 @@ class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
             "is_featured",
             "rating",
             "total_donations",
+            "category",
         ]
         read_only_fields = ["id", "created_at", "user"]
 
