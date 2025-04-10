@@ -61,14 +61,20 @@ class ProjectListCreateAPIView(APIView):
 
         paginator = PageNumberPagination()
         paginated_Projects = paginator.paginate_queryset(projects, request)
-        serializer = ProjectStoreSerializer(paginated_Projects, many=True)
+        serializer = ProjectStoreSerializer(
+            paginated_Projects, many=True, context={"request": request}
+        )
         return paginator.get_paginated_response(serializer.data)
 
     def post(self, request):
-        project_serializer = ProjectStoreSerializer(data=request.data)
+        project_serializer = ProjectStoreSerializer(
+            data=request.data, context={"request": request}
+        )
         if project_serializer.is_valid():
             project = project_serializer.save(user=request.user)
-            result_serializer = ProjectDetailSerializer(project)
+            result_serializer = ProjectDetailSerializer(
+                project, context={"request": request}
+            )
             return Response(result_serializer.data, status=status.HTTP_201_CREATED)
         return Response(project_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -86,7 +92,7 @@ class ProjectDetailAPIView(APIView):
 
     def get(self, request, pk):
         project = self.get_object(pk)
-        serializer = ProjectDetailSerializer(project)
+        serializer = ProjectDetailSerializer(project, context={"request": request})
         return Response(serializer.data)
 
     def put(self, request, pk):
@@ -94,22 +100,28 @@ class ProjectDetailAPIView(APIView):
         serializer = ProjectStoreSerializer(project, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            result_serializer = ProjectDetailSerializer(project)
+            result_serializer = ProjectDetailSerializer(
+                project, context={"request": request}
+            )
             return Response(result_serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request, pk):
         project = self.get_object(pk)
-        serializer = ProjectStoreSerializer(project, data=request.data, partial=True)
+        serializer = ProjectStoreSerializer(
+            project, data=request.data, partial=True, context={"request": request}
+        )
         if serializer.is_valid():
             serializer.save()
-            result_serializer = ProjectDetailSerializer(project)
+            result_serializer = ProjectDetailSerializer(
+                project, context={"request": request}
+            )
             return Response(result_serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
         project = self.get_object(pk)
-        serializer = ProjectStoreSerializer(project)
+        serializer = ProjectStoreSerializer(project, context={"request": request})
         data = serializer.data
         project.delete()
         return Response(data, status=status.HTTP_200_OK)
@@ -159,7 +171,7 @@ class ImageDetailAPIView(APIView):
 
 # Comments
 class CommentStore(APIView):
-    permission_classes = [IsAuthenticated()]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         serialzier = CommentSerializer(data=request.data)
@@ -194,7 +206,7 @@ class CommentDetailAPIView(APIView):
 
 # Ratting
 class RattingStore(APIView):
-    permission_classes = [IsAuthenticated()]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         serialzier = RattingSerializer(data=request.data)

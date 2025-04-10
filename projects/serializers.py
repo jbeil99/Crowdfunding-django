@@ -14,10 +14,18 @@ from accounts.serializers import UserSerializer
 
 
 class ImageSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = ProjectImages
-        fields = ["id", "image", "title", "uploaded_at"]
+        fields = ["id", "image_url", "title", "uploaded_at"]
         read_only_fields = ["id", "uploaded_at"]
+
+    def get_image_url(self, obj):
+        request = self.context.get("request")
+        if request:
+            return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -34,10 +42,12 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class RattingSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
     class Meta:
         model = Ratting
         fields = "__all__"
-        read_only_fields = ["id", "created_at", "user"]
+        read_only_fields = ["id", "created_at"]
         extra_kwargs = {"rate": {"required": True}}
 
     def validate_rate(self, value):
@@ -49,10 +59,12 @@ class RattingSerializer(serializers.ModelSerializer):
 
 
 class CommentsReportsSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
     class Meta:
         model = CommentsReports
         fields = "__all__"
-        read_only_fields = ["id", "created_at", "user"]
+        read_only_fields = ["id", "created_at"]
 
 
 class ProjectsReportsSerializer(serializers.ModelSerializer):
@@ -63,14 +75,18 @@ class ProjectsReportsSerializer(serializers.ModelSerializer):
 
 
 class DonationSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
     class Meta:
         model = Donation
-        fields = "__all__"
-        read_only_fields = ["id", "user"]
+        fields = ["amount", "project", "user"]
+        read_only_fields = ["id"]
 
-    def vaidate_amount(self, value):
+    def validate_amount(self, value):
         if value <= 0:
-            serializers.ValidationError("Donation amount cant be less than 0")
+            raise serializers.ValidationError(
+                "Donation amount can't be less than or equal to 0"
+            )
         return value
 
 
@@ -109,12 +125,13 @@ class CategorySerializer(serializers.ModelSerializer):
 class ProjectDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
     images = ImageSerializer(many=True, read_only=True)
     tags = TagListSerializerField()
-    comments = CommentSerializer(many=True, read_only=True)
-    ratting = RattingSerializer(many=True, read_only=True)
-    user = UserSerializer()
+    owner = UserSerializer(source="user")
     donations = DonationSerializer(many=True, read_only=True)
     total_donations = serializers.SerializerMethodField()
     category = CategorySerializer()
+    thumbnail = serializers.SerializerMethodField()
+    comments = CommentSerializer(many=True, read_only=True)
+    ratings = RattingSerializer(many=True, read_only=True)
 
     class Meta:
         model = Project
@@ -127,26 +144,32 @@ class ProjectDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
             "total_target",
             "start_time",
             "end_time",
-            "user",
+            "owner",
             "tags",
-            "comments",
-            "ratting",
             "is_featured",
             "donations",
             "total_donations",
             "category",
+            "thumbnail",
+            "comments",
+            "ratings",
         ]
         read_only_fields = [
             "id",
             "created_at",
             "user",
             "donations",
-            "comments",
-            "ratting",
+            "user_activities",
         ]
 
     def get_total_donations(self, obj):
         return obj.get_total_donations()
+
+    def get_thumbnail(self, obj):
+        request = self.context.get("request")
+        if request:
+            return request.build_absolute_uri(obj.thumbnail.url)
+        return obj.thumbnail.url
 
 
 class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
@@ -159,6 +182,7 @@ class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
     tags = TagListSerializerField(required=False)
     rating = serializers.SerializerMethodField()
     total_donations = serializers.SerializerMethodField()
+    thumbnail = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
@@ -176,6 +200,7 @@ class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
             "rating",
             "total_donations",
             "category",
+            "thumbnail",
         ]
         read_only_fields = ["id", "created_at", "user"]
 
@@ -184,6 +209,12 @@ class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
 
     def get_total_donations(self, obj):
         return obj.get_total_donations()
+
+    def get_thumbnail(self, obj):
+        request = self.context.get("request")
+        if request:
+            return request.build_absolute_uri(obj.thumbnail.url)
+        return obj.thumbnail.url
 
     def validate_title(self, value):
         if len(value) < 5:
@@ -221,10 +252,12 @@ class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
 
             import datetime
 
-            now = datetime.datetime.now()
-            if data["start_time"].replace(tzinfo=None) < now:
+            today = datetime.datetime.now().replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+            if data["start_time"].replace(tzinfo=None) < today:
                 raise serializers.ValidationError(
-                    {"start_time": "Start time cannot be in the past"}
+                    {"start_time": "Start date cannot be in the past"}
                 )
 
         return data

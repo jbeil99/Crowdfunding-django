@@ -23,11 +23,14 @@ class Project(models.Model):
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
-    is_active = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)  # TODO: Change later
     is_accepted = models.BooleanField(default=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="projects")
     is_featured = models.BooleanField(default=False)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True)
+    thumbnail = models.ImageField(
+        upload_to="images/", default="images/default_thumbnail.jpg"
+    )
 
     def __str__(self):
         return self.title
@@ -62,7 +65,7 @@ class Project(models.Model):
 
     @classmethod
     def getTopRatedProjects(cls, limit=5):
-        return cls.objects.annotate(avg_rating=models.Avg("ratting__rate")).order_by(
+        return cls.objects.annotate(avg_rating=models.Avg("ratings__rate")).order_by(
             "-avg_rating"
         )[:limit]
 
@@ -132,7 +135,7 @@ class Project(models.Model):
         return self.get_total_donations() / self.total_target * 100 < 25
 
     def get_average_rating(self):
-        average = self.ratting.aggregate(avg_rating=models.Avg("rate"))["avg_rating"]
+        average = self.ratings.aggregate(avg_rating=models.Avg("rate"))["avg_rating"]
         if average is not None:
             return round(average, 1)
         return 0.0
@@ -155,7 +158,7 @@ class ProjectImages(models.Model):
 
 class Ratting(models.Model):
     project = models.ForeignKey(
-        Project, on_delete=models.CASCADE, related_name="ratting"
+        Project, on_delete=models.CASCADE, related_name="ratings"
     )
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     detail = models.TextField(blank=True)
