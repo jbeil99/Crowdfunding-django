@@ -171,13 +171,26 @@ class ImageDetailAPIView(APIView):
 
 # Comments
 class CommentStore(APIView):
-    permission_classes = [IsAuthenticated]
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+    def get(self, request, pk):
+        project = get_object_or_404(Project, pk=pk)
+        comments = Comments.objects.filter(project=project)
+        paginator = PageNumberPagination()
+        paginated_comments = paginator.paginate_queryset(comments, request)
+        serializer = CommentSerializer(
+            paginated_comments, many=True, context={"request": request}
+        )
+        return paginator.get_paginated_response(serializer.data)
 
     def post(self, request):
         serialzier = CommentSerializer(data=request.data)
         if serialzier.is_valid():
             comment = serialzier.save(user=request.user)
-            result_serializer = CommentSerializer(comment)
+            result_serializer = CommentSerializer(comment, context={"request": request})
             return Response(result_serializer.data, status=status.HTTP_201_CREATED)
         return Response(serialzier.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -206,7 +219,20 @@ class CommentDetailAPIView(APIView):
 
 # Ratting
 class RattingStore(APIView):
-    permission_classes = [IsAuthenticated]
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+    def get(self, request, pk):
+        project = get_object_or_404(Project, pk=pk)
+        ratings = Ratting.objects.filter(project=project)
+        paginator = PageNumberPagination()
+        paginated_ratings = paginator.paginate_queryset(ratings, request)
+        serializer = CommentSerializer(
+            paginated_ratings, many=True, context={"request": request}
+        )
+        return paginator.get_paginated_response(serializer.data)
 
     def post(self, request):
         serialzier = RattingSerializer(data=request.data)
@@ -277,7 +303,20 @@ class CommentsReportsDetailAPIView(APIView):
 
 # project Reports
 class ProjectReportsStore(APIView):
-    permission_classes = [IsAuthenticated()]
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+    def get(self, request, pk):
+        project = get_object_or_404(Project, pk=pk)
+        reports = Comments.objects.filter(project=project)
+        paginator = PageNumberPagination()
+        paginated_reports = paginator.paginate_queryset(reports, request)
+        serializer = ProjectsReportsSerializer(
+            paginated_reports, many=True, context={"request": request}
+        )
+        return paginator.get_paginated_response(serializer.data)
 
     def post(self, request):
         serialzier = ProjectsReportsSerializer(data=request.data)
@@ -328,7 +367,20 @@ class CancelProjectView(APIView):
 
 # Donation
 class DonationStore(APIView):
-    permission_classes = [IsAuthenticated]
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+    def get(self, request, pk):
+        project = get_object_or_404(Project, pk=pk)
+        donations = Donation.objects.filter(project=project)
+        paginator = PageNumberPagination()
+        paginated_donations = paginator.paginate_queryset(donations, request)
+        serializer = DonationSerializer(
+            paginated_donations, many=True, context={"request": request}
+        )
+        return paginator.get_paginated_response(serializer.data)
 
     def post(self, request):
         serialzier = DonationSerializer(data=request.data)

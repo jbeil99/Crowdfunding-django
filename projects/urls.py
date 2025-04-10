@@ -29,20 +29,30 @@ urlpatterns = [
     path(
         "projects/images/<int:pk>/", ImageDetailAPIView.as_view(), name="image-detail"
     ),
-    path("projects/comments/", CommentStore.as_view(), name="project-comments-store"),
     path(
-        "projects/comments/<int:pk>",
+        "projects/<int:pk>/comments",
+        CommentStore.as_view(),
+        name="project-comments-store",
+    ),
+    path(
+        "comments/<int:pk>",
         CommentDetailAPIView.as_view(),
         name="project-comments-detail",
     ),
-    path("projects/ratings", RattingStore.as_view(), name="project-ratings-store"),
+    path(
+        "projects/<int:pk>/ratings",
+        RattingStore.as_view(),
+        name="project-ratings-store",
+    ),
     path(
         "projects/ratings/<int:pk>",
         RattingDetailAPIView.as_view(),
         name="project-ratings-detail",
     ),
     path(
-        "projects/reports", ProjectReportsStore.as_view(), name="project-reports-store"
+        "projects/<int:pk>/reports",
+        ProjectReportsStore.as_view(),
+        name="project-reports-store",
     ),
     path(
         "projects/reports/<int:pk>",
@@ -64,7 +74,11 @@ urlpatterns = [
         CancelProjectView.as_view(),
         name="project-cancel",
     ),
-    path("projects/donation", DonationStore.as_view(), name="project-donation-store"),
+    path(
+        "projects/<int:pk>/donations",
+        DonationStore.as_view(),
+        name="project-donation-store",
+    ),
     path(
         "projects/donation/<int:pk>",
         DonationDetailAPIView.as_view(),

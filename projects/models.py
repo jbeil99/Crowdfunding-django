@@ -135,7 +135,7 @@ class Project(models.Model):
         return self.get_total_donations() / self.total_target * 100 < 25
 
     def get_average_rating(self):
-        average = self.ratings.aggregate(avg_rating=models.Avg("rate"))["avg_rating"]
+        average = self.ratings.aggregate(avg_ratings=models.Avg("rate"))["avg_ratings"]
         if average is not None:
             return round(average, 1)
         return 0.0

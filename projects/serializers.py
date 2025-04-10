@@ -29,10 +29,12 @@ class ImageSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
     class Meta:
         model = Comments
         fields = "__all__"
-        read_only_fields = ["id", "created_at", "user"]
+        read_only_fields = ["id", "created_at"]
         extra_kwargs = {"body": {"required": True}}
 
     def validate_body(self, value):
@@ -79,8 +81,8 @@ class DonationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Donation
-        fields = ["amount", "project", "user"]
-        read_only_fields = ["id"]
+        fields = ["amount", "project", "user", "created_at"]
+        read_only_fields = ["id", "created_at"]
 
     def validate_amount(self, value):
         if value <= 0:
@@ -183,6 +185,7 @@ class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
     rating = serializers.SerializerMethodField()
     total_donations = serializers.SerializerMethodField()
     thumbnail = serializers.SerializerMethodField()
+    category = CategorySerializer()
 
     class Meta:
         model = Project
