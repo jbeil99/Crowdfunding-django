@@ -14,6 +14,10 @@ class User(AbstractUser):
         default="images/default_avatar.jpg",
     )
     is_active = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    date_of_birth = models.DateField(null=True, blank=True)
+    facebook = models.URLField(max_length=200, blank=True, null=True)
+    country = models.CharField(max_length=100, blank=True, null=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username", "first_name", "last_name", "mobile_phone"]

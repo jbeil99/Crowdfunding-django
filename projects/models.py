@@ -211,6 +211,10 @@ class Donation(models.Model):
     def __str__(self):
         return f"{self.user} donted to ${self.project}"
 
+    @classmethod
+    def getUserDonations(cls, user):
+        return cls.objects.filter(user=user)
+
 
 class CommentsReports(models.Model):
     user = models.ForeignKey(

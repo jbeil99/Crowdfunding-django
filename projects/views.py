@@ -31,9 +31,9 @@ from .permissions import IsOwnerOrAdmin
 
 
 class CustomPagination(PageNumberPagination):
-    page_size = 3
+    page_size = 10
     page_size_query_param = "page_size"
-    max_page_size = 3
+    max_page_size = 100  #
 
 
 # TODO: Change the payload user  to the request user
@@ -65,7 +65,7 @@ class ProjectListCreateAPIView(APIView):
             search=search,
         )
 
-        paginator = PageNumberPagination()
+        paginator = CustomPagination()
         paginated_Projects = paginator.paginate_queryset(projects, request)
         serializer = ProjectStoreSerializer(
             paginated_Projects, many=True, context={"request": request}
@@ -234,7 +234,7 @@ class RattingStore(APIView):
     def get(self, request, pk):
         project = get_object_or_404(Project, pk=pk)
         ratings = Ratting.objects.filter(project=project)
-        paginator = PageNumberPagination()
+        paginator = CustomPagination()
         paginated_ratings = paginator.paginate_queryset(ratings, request)
         serializer = CommentSerializer(
             paginated_ratings, many=True, context={"request": request}
@@ -283,7 +283,7 @@ class CommentsReportsStore(APIView):
     def get(self, request, pk):
         comment = get_object_or_404(Comments, pk=pk)
         reports = CommentsReports.objects.filter(comment=comment)
-        paginator = PageNumberPagination()
+        paginator = CustomPagination()
         paginated_reports = paginator.paginate_queryset(reports, request)
         serializer = CommentsReportsSerializer(
             paginated_reports, many=True, context={"request": request}
@@ -332,7 +332,7 @@ class ProjectReportsStore(APIView):
     def get(self, request, pk):
         project = get_object_or_404(Project, pk=pk)
         reports = ProjectsReports.objects.filter(project=project)
-        paginator = PageNumberPagination()
+        paginator = CustomPagination()
         paginated_reports = paginator.paginate_queryset(reports, request)
         serializer = ProjectsReportsSerializer(
             paginated_reports, many=True, context={"request": request}

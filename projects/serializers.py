@@ -76,22 +76,6 @@ class ProjectsReportsSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at", "user", "project"]
 
 
-class DonationSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-
-    class Meta:
-        model = Donation
-        fields = ["amount", "project", "user", "created_at"]
-        read_only_fields = ["id", "created_at", "project"]
-
-    def validate_amount(self, value):
-        if value <= 0:
-            raise serializers.ValidationError(
-                "Donation amount can't be less than or equal to 0"
-            )
-        return value
-
-
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
@@ -197,8 +181,10 @@ class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
             "total_donations",
             "category",
             "thumbnail",
+            "is_active",
+            "created_at",
         ]
-        read_only_fields = ["id", "created_at", "user"]
+        read_only_fields = ["id", "created_at", "user", "is_active", "created_at"]
 
     def get_rating(slef, obj):
         return obj.get_average_rating()
@@ -303,3 +289,18 @@ class ProjectCancellationSerializer(serializers.ModelSerializer):
 
 
 # TODO: Add serializer for admin view to get reports
+class DonationSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    project = ProjectStoreSerializer(read_only=True)
+
+    class Meta:
+        model = Donation
+        fields = ["amount", "project", "user", "created_at"]
+        read_only_fields = ["id", "created_at"]
+
+    def validate_amount(self, value):
+        if value <= 0:
+            raise serializers.ValidationError(
+                "Donation amount can't be less than or equal to 0"
+            )
+        return value

@@ -5,7 +5,6 @@ from djoser.serializers import (
     UserCreateSerializer,
     UserSerializer as BaseUserSerializer,
 )
-from django.core.validators import RegexValidator
 
 User = get_user_model()
 
@@ -43,13 +42,11 @@ class UserRegistrationSerializer(UserCreateSerializer):
             raise serializers.ValidationError(
                 "Invalid Egyptian phone number. Must be 11 digits starting with 010, 011, 012, or 015"
             )
-        if len(value) != 11:
-            raise serializers.ValidationError("Phone number must be exactly 11 digits")
         return value
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
-        if attrs["password"] != attrs["confirm_password"]:
+        if attrs.get("password") != attrs.get("confirm_password"):
             raise serializers.ValidationError(
                 {"confirm_password": "Passwords don't match"}
             )
@@ -64,13 +61,46 @@ class UserSerializer(BaseUserSerializer):
         fields = [
             "id",
             "email",
+            "username",
             "first_name",
             "last_name",
             "mobile_phone",
             "profile_picture",
-            "is_active",
+            "created_at",
         ]
-        read_only_fields = ["id", "email", "is_active"]
+        read_only_fields = ["id", "email"]
+
+    def get_profile_picture(self, obj):
+        request = self.context.get("request")
+        if request:
+            try:
+                obj.profile_picture.url
+            except ValueError:
+                return None
+
+            return request.build_absolute_uri(obj.profile_picture.url)
+        return obj.profile_picture.url
+
+
+class UserProfileSerializer(BaseUserSerializer):
+    profile_picture = serializers.SerializerMethodField()
+
+    class Meta(BaseUserSerializer.Meta):
+        model = User
+        fields = [
+            "id",
+            "email",
+            "username",
+            "first_name",
+            "last_name",
+            "mobile_phone",
+            "profile_picture",
+            "date_of_birth",
+            "facebook",
+            "country",
+            "created_at",
+        ]
+        read_only_fields = ["id", "email"]
 
     def get_profile_picture(self, obj):
         request = self.context.get("request")
