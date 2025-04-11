@@ -94,7 +94,7 @@ class ProjectDetailAPIView(APIView):
         return [IsAuthenticated(), IsOwnerOrAdmin()]
 
     def get_object(self, pk):
-        return get_object_or_404(Project, pk=pk)
+        return get_object_or_404(Project, pk=pk, is_active=True)
 
     def get(self, request, pk):
         project = self.get_object(pk)
@@ -371,15 +371,17 @@ class ProjectReportsDetailAPIView(APIView):
 class CancelProjectView(APIView):
     permission_classes = [IsAuthenticated, IsOwnerOrAdmin]
 
-    def post(self, request, pk):
+    def patch(self, request, pk):
         project = get_object_or_404(Project, pk=pk)
         serializer = ProjectCancellationSerializer(
-            data=request.data, context={"request": request, "project": project}
+            project,
+            data=request.data,
+            partial=True,
+            context={"request": request, "project": project},
         )
 
         if serializer.is_valid():
-            project.is_active = False
-            project.save()
+            serializer.save(is_active=False)
             return Response(
                 {"message": "Project successfully canceled"}, status=status.HTTP_200_OK
             )

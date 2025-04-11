@@ -65,9 +65,11 @@ class Project(models.Model):
 
     @classmethod
     def getTopRatedProjects(cls, limit=5):
-        return cls.objects.annotate(avg_rating=models.Avg("ratings__rate")).order_by(
-            "-avg_rating"
-        )[:limit]
+        return (
+            cls.getAvtiveProjects()
+            .annotate(avg_rating=models.Avg("ratings__rate"))
+            .order_by("-avg_rating")[:limit]
+        )
 
     @classmethod
     def filterProjects(
@@ -132,6 +134,8 @@ class Project(models.Model):
         return projects
 
     def canBeCanceld(self):
+        if not self.get_total_donations() or not self.total_target:
+            return True
         return self.get_total_donations() / self.total_target * 100 < 25
 
     def get_average_rating(self):

@@ -70,7 +70,7 @@ urlpatterns = [
         name="comments-reports-detail",
     ),
     path(
-        "projects/<int:pk>/cancel/",
+        "projects/<int:pk>/cancel",
         CancelProjectView.as_view(),
         name="project-cancel",
     ),

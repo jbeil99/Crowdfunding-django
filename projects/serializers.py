@@ -128,12 +128,9 @@ class ProjectDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
     images = ImageSerializer(many=True, read_only=True)
     tags = TagListSerializerField()
     owner = UserSerializer(source="user")
-    donations = DonationSerializer(many=True, read_only=True)
     total_donations = serializers.SerializerMethodField()
     category = CategorySerializer()
     thumbnail = serializers.SerializerMethodField()
-    comments = CommentSerializer(many=True, read_only=True)
-    ratings = RattingSerializer(many=True, read_only=True)
 
     class Meta:
         model = Project
@@ -149,19 +146,15 @@ class ProjectDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
             "owner",
             "tags",
             "is_featured",
-            "donations",
             "total_donations",
             "category",
             "thumbnail",
-            "comments",
-            "ratings",
+            "is_active",
         ]
         read_only_fields = [
             "id",
             "created_at",
             "user",
-            "donations",
-            "user_activities",
         ]
 
     def get_total_donations(self, obj):
@@ -280,20 +273,30 @@ class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
         return project
 
 
-class ProjectCancellationSerializer(serializers.Serializer):
-    reason = serializers.CharField(required=False)
+class ProjectCancellationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Project
+        fields = ["is_active"]
 
     def validate(self, data):
         project = self.context.get("project")
-        user = self.context.get("request").user
+        request = self.context.get("request")
+
+        if not project or not request:
+            raise serializers.ValidationError(
+                "Invalid context: missing project or request."
+            )
+
+        user = request.user
+
         if project.user != user:
             raise serializers.ValidationError(
-                "Only the project owner can cancel a project."
+                "Only the project owner can cancel this project."
             )
 
         if not project.canBeCanceld():
             raise serializers.ValidationError(
-                "Cannot cancel project that has reached 25% or more of its funding goal."
+                "Cannot cancel a project that has reached 25% or more of its funding goal."
             )
 
         return data
