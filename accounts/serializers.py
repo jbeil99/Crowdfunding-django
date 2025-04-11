@@ -82,9 +82,7 @@ class UserSerializer(BaseUserSerializer):
         return obj.profile_picture.url
 
 
-class UserProfileSerializer(BaseUserSerializer):
-    profile_picture = serializers.SerializerMethodField()
-
+class UserProfileSerializer(serializers.ModelSerializer):
     class Meta(BaseUserSerializer.Meta):
         model = User
         fields = [
@@ -100,7 +98,7 @@ class UserProfileSerializer(BaseUserSerializer):
             "country",
             "created_at",
         ]
-        read_only_fields = ["id", "email"]
+        read_only_fields = ["id", "email", "created_at"]
 
     def get_profile_picture(self, obj):
         request = self.context.get("request")
@@ -109,6 +107,40 @@ class UserProfileSerializer(BaseUserSerializer):
                 obj.profile_picture.url
             except ValueError:
                 return None
-
             return request.build_absolute_uri(obj.profile_picture.url)
         return obj.profile_picture.url
+
+    def validate_username(self, value):
+        if len(value) < 3:
+            raise serializers.ValidationError(
+                "Username must be at least 3 characters long."
+            )
+        return value
+
+    def validate_first_name(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("First name is required.")
+        return value
+
+    def validate_last_name(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("Last name is required.")
+        return value
+
+    def validate_mobile_phone(self, value):
+        egyptian_pattern = r"^01[0125][0-9]{8}$"
+        if not re.match(egyptian_pattern, value):
+            raise serializers.ValidationError("Enter a valid Egyptian mobile number.")
+        return value
+
+    def validate_facebook(self, value):
+        if value and not value.startswith("https://www.facebook.com/"):
+            raise serializers.ValidationError(
+                "Facebook URL must start with https://www.facebook.com/"
+            )
+        return value
+
+    def validate_country(self, value):
+        if value and not value.strip():
+            raise serializers.ValidationError("Country must not be blank.")
+        return value

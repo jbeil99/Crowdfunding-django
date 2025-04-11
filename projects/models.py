@@ -199,7 +199,9 @@ class Comments(models.Model):
 
 
 class Donation(models.Model):
-    user = models.ForeignKey(User, on_delete=models.PROTECT, related_name="donations")
+    user = models.ForeignKey(
+        User, on_delete=models.SET_NULL, related_name="donations", null=True
+    )
     project = models.ForeignKey(
         Project, on_delete=models.CASCADE, related_name="donations"
     )
@@ -218,7 +220,7 @@ class Donation(models.Model):
 
 class CommentsReports(models.Model):
     user = models.ForeignKey(
-        User, on_delete=models.PROTECT, related_name="reports_comments"
+        User, on_delete=models.SET_NULL, related_name="reports_comments", null=True
     )
     comment = models.ForeignKey(
         Comments, on_delete=models.CASCADE, related_name="reports_comments"
@@ -231,7 +233,9 @@ class CommentsReports(models.Model):
 
 
 class ProjectsReports(models.Model):
-    user = models.ForeignKey(User, on_delete=models.PROTECT, related_name="reports")
+    user = models.ForeignKey(
+        User, on_delete=models.SET_NULL, related_name="reports", null=True
+    )
     project = models.ForeignKey(
         Project, on_delete=models.CASCADE, related_name="reports"
     )

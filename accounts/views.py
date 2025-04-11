@@ -5,6 +5,10 @@ from django.shortcuts import get_object_or_404
 from projects.serializers import DonationSerializer
 from projects.models import Donation
 from .models import User
+from .serializers import UserProfileSerializer
+from rest_framework import status
+from rest_framework.response import Response
+from django.contrib.auth.hashers import check_password
 
 
 class CustomPagination(PageNumberPagination):
@@ -25,3 +29,53 @@ class UserDonations(APIView):
             paginated_donations, many=True, context={"request": request}
         )
         return paginator.get_paginated_response(serializer.data)
+
+
+class UserUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserProfileSerializer(request.user)
+        return Response(serializer.data)
+
+    def patch(self, request):
+        serializer = UserProfileSerializer(
+            request.user, data=request.data, partial=True
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def put(self, request):
+        serializer = UserProfileSerializer(request.user, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class DeleteAccountView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request):
+        user = request.user
+        password = request.data.get("current_password")
+
+        if not password:
+            return Response(
+                {"error": "Current password is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not check_password(password, user.password):
+            return Response(
+                {"error": "Incorrect password."}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user.delete()
+
+        return Response(
+            {"message": "Your account has been deleted successfully."},
+            status=status.HTTP_200_OK,
+        )
