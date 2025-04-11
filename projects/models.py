@@ -213,7 +213,7 @@ class CommentsReports(models.Model):
         User, on_delete=models.PROTECT, related_name="reports_comments"
     )
     comment = models.ForeignKey(
-        Project, on_delete=models.CASCADE, related_name="reports_comments"
+        Comments, on_delete=models.CASCADE, related_name="reports_comments"
     )
     details = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)

@@ -275,13 +275,26 @@ class RattingDetailAPIView(APIView):
 
 # comments Reports
 class CommentsReportsStore(APIView):
-    permission_classes = [IsAuthenticated]
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
-    def post(self, request):
-        request["user"] = request.user.id
+    def get(self, request, pk):
+        comment = get_object_or_404(Comments, pk=pk)
+        reports = CommentsReports.objects.filter(comment=comment)
+        paginator = PageNumberPagination()
+        paginated_reports = paginator.paginate_queryset(reports, request)
+        serializer = CommentsReportsSerializer(
+            paginated_reports, many=True, context={"request": request}
+        )
+        return paginator.get_paginated_response(serializer.data)
+
+    def post(self, request, pk):
         serialzier = CommentsReportsSerializer(data=request.data)
         if serialzier.is_valid():
-            report = serialzier.save(user=request.user)
+            comment = get_object_or_404(Comments, pk=pk)
+            report = serialzier.save(user=request.user, comment=comment)
             result_serializer = CommentsReportsSerializer(report)
             return Response(result_serializer.data, status=status.HTTP_201_CREATED)
         return Response(serialzier.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -318,7 +331,7 @@ class ProjectReportsStore(APIView):
 
     def get(self, request, pk):
         project = get_object_or_404(Project, pk=pk)
-        reports = Comments.objects.filter(project=project)
+        reports = ProjectsReports.objects.filter(project=project)
         paginator = PageNumberPagination()
         paginated_reports = paginator.paginate_queryset(reports, request)
         serializer = ProjectsReportsSerializer(
@@ -326,10 +339,11 @@ class ProjectReportsStore(APIView):
         )
         return paginator.get_paginated_response(serializer.data)
 
-    def post(self, request):
+    def post(self, request, pk):
         serialzier = ProjectsReportsSerializer(data=request.data)
         if serialzier.is_valid():
-            report = serialzier.save(user=request.user)
+            project = get_object_or_404(Project, pk=pk)
+            report = serialzier.save(user=request.user, project=project)
             result_serializer = ProjectsReportsSerializer(report)
             return Response(result_serializer.data, status=status.HTTP_201_CREATED)
         return Response(serialzier.errors, status=status.HTTP_400_BAD_REQUEST)

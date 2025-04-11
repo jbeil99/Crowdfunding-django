@@ -60,12 +60,12 @@ urlpatterns = [
         name="project-reports-detail",
     ),
     path(
-        "projects/comments/reports",
+        "comments/<int:pk>/reports",
         CommentsReportsStore.as_view(),
         name="comments-reports-store",
     ),
     path(
-        "projects/comments/reports/<int:pk>",
+        "comments/reports/<int:pk>",
         CommentsReportsDetailAPIView.as_view(),
         name="comments-reports-detail",
     ),

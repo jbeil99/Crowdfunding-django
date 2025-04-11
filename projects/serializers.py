@@ -66,14 +66,14 @@ class CommentsReportsSerializer(serializers.ModelSerializer):
     class Meta:
         model = CommentsReports
         fields = "__all__"
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "created_at", "user", "comment"]
 
 
 class ProjectsReportsSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectsReports
         fields = "__all__"
-        read_only_fields = ["id", "created_at", "user"]
+        read_only_fields = ["id", "created_at", "user", "project"]
 
 
 class DonationSerializer(serializers.ModelSerializer):
