@@ -34,7 +34,7 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comments
         fields = "__all__"
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "created_at", "project"]
         extra_kwargs = {"body": {"required": True}}
 
     def validate_body(self, value):
@@ -49,7 +49,7 @@ class RattingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ratting
         fields = "__all__"
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "created_at", "project"]
         extra_kwargs = {"rate": {"required": True}}
 
     def validate_rate(self, value):
@@ -82,7 +82,7 @@ class DonationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Donation
         fields = ["amount", "project", "user", "created_at"]
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "created_at", "project"]
 
     def validate_amount(self, value):
         if value <= 0:

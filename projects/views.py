@@ -30,6 +30,12 @@ from rest_framework.pagination import PageNumberPagination
 from .permissions import IsOwnerOrAdmin
 
 
+class CustomPagination(PageNumberPagination):
+    page_size = 3
+    page_size_query_param = "page_size"
+    max_page_size = 3
+
+
 # TODO: Change the payload user  to the request user
 class ProjectListCreateAPIView(APIView):
     parser_classes = [MultiPartParser, FormParser]
@@ -179,17 +185,18 @@ class CommentStore(APIView):
     def get(self, request, pk):
         project = get_object_or_404(Project, pk=pk)
         comments = Comments.objects.filter(project=project)
-        paginator = PageNumberPagination()
+        paginator = CustomPagination()
         paginated_comments = paginator.paginate_queryset(comments, request)
         serializer = CommentSerializer(
             paginated_comments, many=True, context={"request": request}
         )
         return paginator.get_paginated_response(serializer.data)
 
-    def post(self, request):
+    def post(self, request, pk):
         serialzier = CommentSerializer(data=request.data)
         if serialzier.is_valid():
-            comment = serialzier.save(user=request.user)
+            project = get_object_or_404(Project, pk=pk)
+            comment = serialzier.save(user=request.user, project=project)
             result_serializer = CommentSerializer(comment, context={"request": request})
             return Response(result_serializer.data, status=status.HTTP_201_CREATED)
         return Response(serialzier.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -234,10 +241,11 @@ class RattingStore(APIView):
         )
         return paginator.get_paginated_response(serializer.data)
 
-    def post(self, request):
+    def post(self, request, pk):
+        project = get_object_or_404(Project, pk=pk)
         serialzier = RattingSerializer(data=request.data)
         if serialzier.is_valid():
-            rate = serialzier.save(user=request.user)
+            rate = serialzier.save(user=request.user, project=project)
             result_serializer = RattingSerializer(rate)
             return Response(result_serializer.data, status=status.HTTP_201_CREATED)
         return Response(serialzier.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -375,17 +383,18 @@ class DonationStore(APIView):
     def get(self, request, pk):
         project = get_object_or_404(Project, pk=pk)
         donations = Donation.objects.filter(project=project)
-        paginator = PageNumberPagination()
+        paginator = CustomPagination()
         paginated_donations = paginator.paginate_queryset(donations, request)
         serializer = DonationSerializer(
             paginated_donations, many=True, context={"request": request}
         )
         return paginator.get_paginated_response(serializer.data)
 
-    def post(self, request):
+    def post(self, request, pk):
         serialzier = DonationSerializer(data=request.data)
         if serialzier.is_valid():
-            rate = serialzier.save(user=request.user)
+            project = get_object_or_404(Project, pk=pk)
+            rate = serialzier.save(user=request.user, project=project)
             result_serializer = DonationSerializer(rate)
             return Response(result_serializer.data, status=status.HTTP_201_CREATED)
         return Response(serialzier.errors, status=status.HTTP_400_BAD_REQUEST)

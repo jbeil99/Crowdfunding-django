@@ -190,6 +190,9 @@ class Comments(models.Model):
     def __str__(self):
         return f"{self.user} comment on {self.project}"
 
+    class Meta:
+        ordering = ["-created_at"]
+
 
 class Donation(models.Model):
     user = models.ForeignKey(User, on_delete=models.PROTECT, related_name="donations")
