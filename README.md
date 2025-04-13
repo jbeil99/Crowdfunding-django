@@ -5,6 +5,7 @@ This document provides details about the API endpoints for a crowdfunding platfo
 This project's documentation is split into multiple files:
 - [Main API Documentation](README.md) - Projects, comments, ratings and other core features
 - [Authentication Documentation](AUTH.md) - User registration, authentication and profile management
+- [Authentication Documentation](INSTALLION.md) - Installtion
 
 ## Table of Contents
 - [Authentication](#authentication)
