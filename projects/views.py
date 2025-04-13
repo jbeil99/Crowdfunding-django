@@ -27,6 +27,28 @@ from rest_framework.pagination import PageNumberPagination
 from .permissions import IsOwnerOrAdmin
 
 
+class CustomPagination(PageNumberPagination):
+    def get_paginated_response(self, data):
+        # Get total stats
+        total_money_raised = Project.get_total_money_raised()
+        total_active_projects = Project.objects.filter(is_active=True).count()
+        total_featured = Project.objects.filter(is_featured=True).count()
+
+        return Response(
+            {
+                "count": self.page.paginator.count,
+                "next": self.get_next_link(),
+                "previous": self.get_previous_link(),
+                "results": data,
+                "statistics": {
+                    "total_money_raised": total_money_raised,
+                    "total_active_projects": total_active_projects,
+                    "total_featured": total_featured,
+                },
+            }
+        )
+
+
 class ProjectListCreateAPIView(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
@@ -56,7 +78,7 @@ class ProjectListCreateAPIView(APIView):
             search=search,
             user_id=user_id,
         )
-        paginator = PageNumberPagination()
+        paginator = CustomPagination()
         paginated_Projects = paginator.paginate_queryset(projects, request)
         serializer = ProjectStoreSerializer(
             paginated_Projects, many=True, context={"request": request}
@@ -87,8 +109,8 @@ class ProjectDetailAPIView(APIView):
         return [IsAuthenticated(), IsOwnerOrAdmin()]
 
     def get_object(self, pk):
-        if self.request.user.is_staff:
-            return get_object_or_404(Project, pk=pk)
+        # if self.request.user.is_staff:
+        #     return get_object_or_404(Project, pk=pk)
         return get_object_or_404(Project, pk=pk, is_active=True)
 
     def get(self, request, pk):
@@ -331,7 +353,6 @@ class CancelProjectView(APIView):
 
     def patch(self, request, pk):
         project = get_object_or_404(Project, pk=pk)
-        print(request.user, request.user.is_staff)
         serializer = ProjectStoreSerializer(
             project,
             data=request.data,
@@ -340,10 +361,10 @@ class CancelProjectView(APIView):
         )
 
         if serializer.is_valid():
-            serializer.save(is_active=False)
-            return Response(
-                {"message": "Project successfully canceled"}, status=status.HTTP_200_OK
-            )
+            project = serializer.save(is_active=False)
+            project_result = ProjectStoreSerializer(project)
+
+            return Response(project_result.data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -356,8 +377,11 @@ class DonationStore(APIView):
         return [IsAuthenticated()]
 
     def get(self, request, pk):
-        project = get_object_or_404(Project, pk=pk)
-        donations = Donation.objects.filter(project=project)
+        if pk == 0:
+            donations = Donation.objects.all()
+        else:
+            project = get_object_or_404(Project, pk=pk)
+            donations = Donation.objects.filter(project=project)
         paginator = PageNumberPagination()
         paginated_donations = paginator.paginate_queryset(donations, request)
         serializer = DonationSerializer(

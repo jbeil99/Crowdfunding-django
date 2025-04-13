@@ -83,29 +83,21 @@ class Project(models.Model):
         latest=None,
         search=None,
     ):
+        projects = cls.getAvtiveProjects()
         if user and user.is_staff:
             projects = cls.objects.all()
         else:
             if user_id:
                 projects = cls.getUserProjects(user_id)
-            else:
-                projects = cls.getAcceptedProjects()
 
         if is_featured == "true":
-            projects = projects.filter(is_featured=True)
-        if category:
-            try:
-                if category:
-                    category_id = int(category)
-                    projects = projects.filter(category=category_id)
-            except (ValueError, TypeError):
-                projects = projects.filter(category=-1)
+            projects = cls.getAvtiveProjects().filter(is_featured=True)
 
         if tags:
-            projects = projects.filter(tags__name__in=tags.split(","))
+            projects = cls.getAvtiveProjects().filter(tags__name__in=tags.split(","))
 
         if search:
-            projects = projects.filter(
+            projects = cls.getAvtiveProjects().filter(
                 models.Q(title__icontains=search) | models.Q(details__icontains=search)
             )
 
@@ -113,16 +105,16 @@ class Project(models.Model):
             if limit:
                 try:
                     limit = int(limit)
-                    projects = projects.order_by("-created_at")[:limit]
+                    projects = cls.getAvtiveProjects().order_by("-created_at")[:limit]
                 except (ValueError, TypeError):
                     pass
             else:
-                projects = projects.order_by("-created_at")[:5]
+                projects = cls.getAvtiveProjects().order_by("-created_at")[:5]
 
         if limit:
             try:
                 limit = int(limit)
-                projects = projects[:limit]
+                projects = cls.getAvtiveProjects()[:limit]
             except (ValueError, TypeError):
                 pass
 
@@ -150,6 +142,16 @@ class Project(models.Model):
 
     def get_donors_count(self):
         return self.donations.values("user").distinct().count()
+
+    @classmethod
+    def get_total_money_raised(cls):
+        """Get total money raised across all projects"""
+        from django.db.models import Sum
+
+        total = cls.objects.aggregate(total_raised=Sum("donations__amount"))[
+            "total_raised"
+        ]
+        return total or 0
 
 
 class ProjectImages(models.Model):
