@@ -48,8 +48,13 @@ class UserUpdateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request):
+        print(request.data)
+        old_profile_picture = request.user.profile_picture
         serializer = UserProfileSerializer(request.user, data=request.data)
         if serializer.is_valid():
+            if not request.data.get("profile_picture"):
+                serializer.validated_data["profile_picture"] = old_profile_picture
+
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

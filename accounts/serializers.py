@@ -5,14 +5,13 @@ from djoser.serializers import (
     UserCreateSerializer,
     UserSerializer as BaseUserSerializer,
 )
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
 
 User = get_user_model()
 
 
 class UserRegistrationSerializer(UserCreateSerializer):
-    confirm_password = serializers.CharField(
-        write_only=True, style={"input_type": "password"}
-    )
     mobile_phone = serializers.CharField(required=True)
     profile_picture = serializers.ImageField(required=False)
 
@@ -33,24 +32,15 @@ class UserRegistrationSerializer(UserCreateSerializer):
             "password": {"write_only": True},
         }
 
-    def validate_mobile_phone(self, value):
-        print("Validating mobile phone...")
-        pattern = r"^01[0125]\d{8}$"
-        value = str(value).strip()
+    def create(self, validated_data):
+        profile_picture = validated_data.pop("profile_picture", None)
+        user = super().create(validated_data)
 
-        if not re.match(pattern, value):
-            raise serializers.ValidationError(
-                "Invalid Egyptian phone number. Must be 11 digits starting with 010, 011, 012, or 015"
-            )
-        return value
+        if profile_picture:
+            user.profile_picture = profile_picture
+            user.save()
 
-    def validate(self, attrs):
-        attrs = super().validate(attrs)
-        if attrs.get("password") != attrs.get("confirm_password"):
-            raise serializers.ValidationError(
-                {"confirm_password": "Passwords don't match"}
-            )
-        return attrs
+        return user
 
 
 class UserSerializer(BaseUserSerializer):
@@ -83,6 +73,9 @@ class UserSerializer(BaseUserSerializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    total_donations = serializers.SerializerMethodField()
+    total_projects_donated = serializers.SerializerMethodField()
+
     class Meta(BaseUserSerializer.Meta):
         model = User
         fields = [
@@ -97,8 +90,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "facebook",
             "country",
             "created_at",
+            "total_donations",
+            "total_projects_donated",
+            "is_staff",
         ]
-        read_only_fields = ["id", "email", "created_at"]
+        read_only_fields = ["id", "email", "created_at", "is_staff"]
 
     def get_profile_picture(self, obj):
         request = self.context.get("request")
@@ -144,3 +140,34 @@ class UserProfileSerializer(serializers.ModelSerializer):
         if value and not value.strip():
             raise serializers.ValidationError("Country must not be blank.")
         return value
+
+    def get_total_donations(self, obj):
+        return obj.get_total_donations()
+
+    def get_total_projects_donated(self, obj):
+        return obj.get_total_projects_donated()
+
+
+class TokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        try:
+            user = User.objects.get(email=attrs["email"])
+            if not user.is_active:
+                raise serializers.ValidationError(
+                    {
+                        "detail": "Account is not active. Please verify your email.",
+                    }
+                )
+
+            try:
+                data = super().validate(attrs)
+                return data
+            except Exception:
+                raise serializers.ValidationError(
+                    {"detail": "Invalid email or password"}
+                )
+
+        except User.DoesNotExist:
+            raise serializers.ValidationError(
+                {"detail": "No account found with this email"}
+            )

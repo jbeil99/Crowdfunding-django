@@ -158,11 +158,13 @@ class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
         required=False,
     )
 
-    tags = TagListSerializerField(required=False)
+    tags = TagListSerializerField(required=True)
     rating = serializers.SerializerMethodField()
     total_donations = serializers.SerializerMethodField()
-    thumbnail = serializers.SerializerMethodField()
-    category = CategorySerializer()
+    thumbnail_url = serializers.SerializerMethodField(read_only=True)
+    thumbnail = serializers.ImageField(write_only=True, required=True)
+    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all())
+    category_detail = CategorySerializer(source="category", read_only=True)
 
     class Meta:
         model = Project
@@ -180,9 +182,11 @@ class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
             "rating",
             "total_donations",
             "category",
+            "thumbnail_url",
             "thumbnail",
             "is_active",
             "created_at",
+            "category_detail",
         ]
         read_only_fields = ["id", "created_at", "user", "is_active", "created_at"]
 
@@ -192,7 +196,7 @@ class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
     def get_total_donations(self, obj):
         return obj.get_total_donations()
 
-    def get_thumbnail(self, obj):
+    def get_thumbnail_url(self, obj):
         request = self.context.get("request")
         if request:
             return request.build_absolute_uri(obj.thumbnail.url)

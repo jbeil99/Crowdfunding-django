@@ -236,7 +236,7 @@ class RattingStore(APIView):
         ratings = Ratting.objects.filter(project=project)
         paginator = CustomPagination()
         paginated_ratings = paginator.paginate_queryset(ratings, request)
-        serializer = CommentSerializer(
+        serializer = RattingSerializer(
             paginated_ratings, many=True, context={"request": request}
         )
         return paginator.get_paginated_response(serializer.data)
@@ -280,9 +280,8 @@ class CommentsReportsStore(APIView):
             return [AllowAny()]
         return [IsAuthenticated()]
 
-    def get(self, request, pk):
-        comment = get_object_or_404(Comments, pk=pk)
-        reports = CommentsReports.objects.filter(comment=comment)
+    def get(self, request):
+        reports = CommentsReports.objects.all()
         paginator = CustomPagination()
         paginated_reports = paginator.paginate_queryset(reports, request)
         serializer = CommentsReportsSerializer(
