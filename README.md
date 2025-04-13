@@ -1,104 +1,768 @@
-# Django Project Setup 
+# Crowdfunding API Documentation
 
-## Setup Instructions
+This document provides details about the API endpoints for a crowdfunding platform where users can create projects, donate to projects, comment, rate, and report inappropriate content.
+## Documentation Structure
+This project's documentation is split into multiple files:
+- [Main API Documentation](README.md) - Projects, comments, ratings and other core features
+- [Authentication Documentation](AUTH.md) - User registration, authentication and profile management
 
-1.  **Clone the Repository:**
+## Table of Contents
+- [Authentication](#authentication)
+- [Projects](#projects)
+- [Comments](#comments)
+- [Ratings](#ratings)
+- [Reports](#reports)
+- [Donations](#donations)
+- [Categories](#categories)
 
-    ```bash
-    git clone https://github.com/jbeil99/django-project.git
-    cd django-project
-    ```
+## Authentication
 
-2.  **Create a Virtual Environment (Recommended):**
+Most endpoints require authentication using JWT tokens. Include the token in the header:
+```
+Authorization: Bearer <your_token>
+```
 
-    While `uv` manages dependencies, a virtual environment is still useful for isolating your project. This step is optional but strongly recommended.
+Public endpoints (GET methods) generally don't require authentication.
 
-    ```bash
-    python -m venv venv
-    source venv/bin/activate  # On Linux/macOS
-    venv\Scripts\activate      # On Windows
-    ```
+## Projects
 
-3.  **Install Dependencies using uv:**
+### List Projects
+- **URL**: `/api/projects`
+- **Method**: `GET`
+- **Auth required**: No
+- **Query Parameters**:
+  ```
+  ?is_featured=true
+  ?category=1
+  ?user_id=5
+  ?limit=10
+  ?is_top=true
+  ?latest=true
+  ?search=keyword
+  ?tags=tag1,tag2
+  ```
+- **Success Response**:
+  ```json
+  {
+    "count": 20,
+    "next": "http://example.com/api/projects?page=2",
+    "previous": null,
+    "results": [
+      {
+        "id": 1,
+        "title": "Project Title",
+        "details": "Project description...",
+        "images": [],
+        "total_target": 10000,
+        "start_time": "2025-05-01T00:00:00Z",
+        "end_time": "2025-06-01T00:00:00Z",
+        "user": 1,
+        "tags": ["tech", "education"],
+        "is_featured": false,
+        "rating": 4.5,
+        "total_donations": 2500,
+        "category": 1,
+        "thumbnail_url": "http://example.com/media/thumbnails/project1.jpg",
+        "is_active": true,
+        "created_at": "2025-04-01T12:00:00Z",
+        "category_detail": {
+          "id": 1,
+          "title": "Technology",
+          "description": "Tech projects"
+        },
+        "backers_count": 15,
+        "review_count": 8,
+        "is_accepted": true
+      }
+    ]
+  }
+  ```
 
-    Use `uv` to install the project dependencies based on the `pyproject.toml` and `uv.lock` file.
+### Create Project
+- **URL**: `/api/projects`
+- **Method**: `POST`
+- **Auth required**: Yes
+- **Request Body**:
+  ```json
+  {
+    "title": "New Project",
+    "details": "This is a detailed description of the project...",
+    "total_target": 15000,
+    "start_time": "2025-05-01T00:00:00Z",
+    "end_time": "2025-07-01T00:00:00Z",
+    "tags": ["innovation", "sustainability"],
+    "category": 3,
+    "thumbnail": "[binary file]"
+  }
+  ```
+- **Success Response**: `201 Created`
+  ```json
+  {
+    "id": 5,
+    "title": "New Project",
+    "details": "This is a detailed description of the project...",
+    "created_at": "2025-04-13T14:30:00Z",
+    "images": [],
+    "total_target": 15000,
+    "start_time": "2025-05-01T00:00:00Z",
+    "end_time": "2025-07-01T00:00:00Z",
+    "owner": {
+      "id": 1,
+      "username": "john_doe",
+      "email": "john@example.com"
+    },
+    "tags": ["innovation", "sustainability"],
+    "is_featured": false,
+    "total_donations": 0,
+    "category": {
+      "id": 3,
+      "title": "Sustainability",
+      "description": "Projects focused on environmental sustainability"
+    },
+    "thumbnail": "http://example.com/media/thumbnails/newproject.jpg",
+    "backers_count": 0,
+    "review_count": 0,
+    "is_active": true,
+    "is_accepted": false,
+    "rating": 0
+  }
+  ```
 
-    ```bash
-    uv pip install .
-    ```
-    If you do not have uv.lock, and need to create it from pyproject.toml, run this command instead.
-    ```bash
-    uv pip sync
-    ```
+### Get Project Details
+- **URL**: `/api/projects/<id>/`
+- **Method**: `GET`
+- **Auth required**: No
+- **Success Response**:
+  ```json
+  {
+    "id": 1,
+    "title": "Project Title",
+    "details": "Project description...",
+    "created_at": "2025-04-01T12:00:00Z",
+    "images": [
+      {
+        "id": 1,
+        "image_url": "http://example.com/media/projects/image1.jpg",
+        "title": "Project Image 1",
+        "uploaded_at": "2025-04-01T12:00:00Z"
+      }
+    ],
+    "total_target": 10000,
+    "start_time": "2025-05-01T00:00:00Z",
+    "end_time": "2025-06-01T00:00:00Z",
+    "owner": {
+      "id": 1,
+      "username": "john_doe",
+      "email": "john@example.com"
+    },
+    "tags": ["tech", "education"],
+    "is_featured": false,
+    "total_donations": 2500,
+    "category": {
+      "id": 1,
+      "title": "Technology",
+      "description": "Tech projects"
+    },
+    "thumbnail": "http://example.com/media/thumbnails/project1.jpg",
+    "backers_count": 15,
+    "review_count": 8,
+    "is_active": true,
+    "is_accepted": true,
+    "rating": 4.5
+  }
+  ```
 
-4.  **Migrate the Database:**
+### Update Project
+- **URL**: `/api/projects/<id>/`
+- **Method**: `PUT` or `PATCH`
+- **Auth required**: Yes (Owner or Admin)
+- **Request Body** (`PATCH` - partial update example):
+  ```json
+  {
+    "title": "Updated Title",
+    "total_target": 20000
+  }
+  ```
+- **Success Response**:
+  ```json
+  {
+    "id": 1,
+    "title": "Updated Title",
+    "details": "Project description...",
+    "created_at": "2025-04-01T12:00:00Z",
+    "images": [...],
+    "total_target": 20000,
+    "start_time": "2025-05-01T00:00:00Z",
+    "end_time": "2025-06-01T00:00:00Z",
+    "owner": {...},
+    "tags": ["tech", "education"],
+    "is_featured": false,
+    "total_donations": 2500,
+    "category": {...},
+    "thumbnail": "http://example.com/media/thumbnails/project1.jpg",
+    "backers_count": 15,
+    "review_count": 8,
+    "is_active": true,
+    "is_accepted": true,
+    "rating": 4.5
+  }
+  ```
 
-    If your Django project uses a database, apply the migrations:
+### Delete Project
+- **URL**: `/api/projects/<id>/`
+- **Method**: `DELETE`
+- **Auth required**: Yes (Admin only)
+- **Success Response**: `200 OK`
+  ```json
+  {
+    "id": 1,
+    "title": "Project Title",
+    "details": "Project description...",
+    "images": [...],
+    "total_target": 10000,
+    "start_time": "2025-05-01T00:00:00Z",
+    "end_time": "2025-06-01T00:00:00Z",
+    "user": 1,
+    "tags": ["tech", "education"],
+    "is_featured": false,
+    "rating": 4.5,
+    "total_donations": 2500,
+    "category": 1,
+    "thumbnail_url": "http://example.com/media/thumbnails/project1.jpg",
+    "is_active": true,
+    "created_at": "2025-04-01T12:00:00Z",
+    "category_detail": {...},
+    "backers_count": 15,
+    "review_count": 8,
+    "is_accepted": true
+  }
+  ```
 
-    ```bash
-    python manage.py migrate
-    ```
+### Mark Project as Featured
+- **URL**: `/api/projects/<id>/featured`
+- **Method**: `PATCH`
+- **Auth required**: Yes (Admin only)
+- **Request Body**:
+  ```json
+  {
+    "is_featured": true
+  }
+  ```
+- **Success Response**: `200 OK`
+  ```json
+  {
+    "id": 1,
+    "title": "Project Title",
+    "details": "Project description...",
+    "images": [...],
+    "total_target": 10000,
+    "start_time": "2025-05-01T00:00:00Z",
+    "end_time": "2025-06-01T00:00:00Z",
+    "user": 1,
+    "tags": ["tech", "education"],
+    "is_featured": true,
+    "rating": 4.5,
+    "total_donations": 2500,
+    "category": 1,
+    "thumbnail_url": "http://example.com/media/thumbnails/project1.jpg",
+    "is_active": true,
+    "created_at": "2025-04-01T12:00:00Z",
+    "category_detail": {...},
+    "backers_count": 15,
+    "review_count": 8,
+    "is_accepted": true
+  }
+  ```
 
-5.  **Create a Superuser (If Necessary):**
+### Cancel Project
+- **URL**: `/api/projects/<id>/cancel`
+- **Method**: `PATCH`
+- **Auth required**: Yes (Owner or Admin)
+- **Success Response**: `200 OK`
+  ```json
+  {
+    "message": "Project successfully canceled"
+  }
+  ```
 
-    If you need to access the Django admin panel, create a superuser:
+## Comments
 
-    ```bash
-    python manage.py createsuperuser
-    ```
+### List Project Comments
+- **URL**: `/api/projects/<id>/comments`
+- **Method**: `GET`
+- **Auth required**: No
+- **Success Response**:
+  ```json
+  {
+    "count": 5,
+    "next": null,
+    "previous": null,
+    "results": [
+      {
+        "id": 1,
+        "body": "This is a great project!",
+        "user": {
+          "id": 2,
+          "username": "jane_smith",
+          "email": "jane@example.com"
+        },
+        "created_at": "2025-04-05T10:15:00Z",
+        "project": 1
+      }
+    ]
+  }
+  ```
 
-6.  **Run the Development Server:**
+### Add Comment to Project
+- **URL**: `/api/projects/<id>/comments`
+- **Method**: `POST`
+- **Auth required**: Yes
+- **Request Body**:
+  ```json
+  {
+    "body": "I'm excited about this project!"
+  }
+  ```
+- **Success Response**: `201 Created`
+  ```json
+  {
+    "id": 6,
+    "body": "I'm excited about this project!",
+    "user": {
+      "id": 1,
+      "username": "john_doe",
+      "email": "john@example.com"
+    },
+    "created_at": "2025-04-13T15:20:00Z",
+    "project": 1
+  }
+  ```
 
-    Start the Django development server:
+### Get Comment Details
+- **URL**: `/api/comments/<id>`
+- **Method**: `GET`
+- **Auth required**: No
+- **Success Response**:
+  ```json
+  {
+    "id": 1,
+    "body": "This is a great project!",
+    "user": {
+      "id": 2,
+      "username": "jane_smith",
+      "email": "jane@example.com"
+    },
+    "created_at": "2025-04-05T10:15:00Z",
+    "project": 1
+  }
+  ```
 
-    ```bash
-    python manage.py runserver
-    ```
+### Delete Comment
+- **URL**: `/api/comments/<id>`
+- **Method**: `DELETE`
+- **Auth required**: Yes (Owner or Admin)
+- **Success Response**: `200 OK`
+  ```json
+  {
+    "id": 1,
+    "body": "This is a great project!",
+    "user": {
+      "id": 2,
+      "username": "jane_smith",
+      "email": "jane@example.com"
+    },
+    "created_at": "2025-04-05T10:15:00Z",
+    "project": 1
+  }
+  ```
 
-    This will start the server, and you can access your Django application in your web browser at `http://127.0.0.1:8000/`.
-    
-## Adding New Libraries and Dependencies
+## Ratings
 
-When you need to add a new library or dependency to your project, follow these steps:
+### List Project Ratings
+- **URL**: `/api/projects/<id>/ratings`
+- **Method**: `GET`
+- **Auth required**: No
+- **Success Response**:
+  ```json
+  {
+    "count": 8,
+    "next": null,
+    "previous": null,
+    "results": [
+      {
+        "id": 1,
+        "rate": 5.0,
+        "user": {
+          "id": 2,
+          "username": "jane_smith",
+          "email": "jane@example.com"
+        },
+        "created_at": "2025-04-03T09:45:00Z",
+        "project": 1
+      }
+    ]
+  }
+  ```
 
-1.  **Use `uv pip add`:**
+### Rate a Project
+- **URL**: `/api/projects/<id>/ratings`
+- **Method**: `POST`
+- **Auth required**: Yes
+- **Request Body**:
+  ```json
+  {
+    "rate": 4.5
+  }
+  ```
+- **Success Response**: `201 Created`
+  ```json
+  {
+    "id": 9,
+    "rate": 4.5,
+    "user": {
+      "id": 1,
+      "username": "john_doe",
+      "email": "john@example.com"
+    },
+    "created_at": "2025-04-13T15:30:00Z",
+    "project": 1
+  }
+  ```
 
-    Use the `uv pip add` command to add the new library to your `pyproject.toml` file. For example, to add the `requests` library:
+### Get Rating Details
+- **URL**: `/api/projects/ratings/<id>`
+- **Method**: `GET`
+- **Auth required**: No
+- **Success Response**:
+  ```json
+  {
+    "id": 1,
+    "rate": 5.0,
+    "user": {
+      "id": 2,
+      "username": "jane_smith",
+      "email": "jane@example.com"
+    },
+    "created_at": "2025-04-03T09:45:00Z",
+    "project": 1
+  }
+  ```
 
-    ```bash
-    uv pip add requests
-    ```
+### Delete Rating
+- **URL**: `/api/projects/ratings/<id>`
+- **Method**: `DELETE`
+- **Auth required**: Yes (Owner or Admin)
+- **Success Response**: `200 OK`
+  ```json
+  {
+    "id": 1,
+    "rate": 5.0,
+    "user": {
+      "id": 2,
+      "username": "jane_smith",
+      "email": "jane@example.com"
+    },
+    "created_at": "2025-04-03T09:45:00Z",
+    "project": 1
+  }
+  ```
 
-    You can specify version constraints as needed:
+## Reports
 
-    ```bash
-    uv pip add django>=4.2
-    ```
+### List Project Reports
+- **URL**: `/api/projects/<id>/reports`
+- **Method**: `GET`
+- **Auth required**: Yes (Admin only)
+- **Success Response**:
+  ```json
+  {
+    "count": 2,
+    "next": null,
+    "previous": null,
+    "results": [
+      {
+        "id": 1,
+        "reason": "Inappropriate content",
+        "user": {
+          "id": 3,
+          "username": "alice_jones",
+          "email": "alice@example.com"
+        },
+        "created_at": "2025-04-10T08:20:00Z",
+        "project": 1
+      }
+    ]
+  }
+  ```
 
-2.  **Synchronize the Dependencies:**
+### Report a Project
+- **URL**: `/api/projects/<id>/reports`
+- **Method**: `POST`
+- **Auth required**: Yes
+- **Request Body**:
+  ```json
+  {
+    "reason": "Misleading information"
+  }
+  ```
+- **Success Response**: `201 Created`
+  ```json
+  {
+    "id": 3,
+    "reason": "Misleading information",
+    "user": {
+      "id": 1,
+      "username": "john_doe",
+      "email": "john@example.com"
+    },
+    "created_at": "2025-04-13T15:40:00Z",
+    "project": 1
+  }
+  ```
 
-    After adding the library, synchronize the dependencies to update the `uv.lock` file and install the new library:
+### List Comment Reports
+- **URL**: `/api/comments/<id>/reports`
+- **Method**: `GET`
+- **Auth required**: Varies (Public for specific report, Admin for all)
+- **Success Response**:
+  ```json
+  {
+    "count": 1,
+    "next": null,
+    "previous": null,
+    "results": [
+      {
+        "id": 1,
+        "reason": "Offensive language",
+        "user": {
+          "id": 3,
+          "username": "alice_jones",
+          "email": "alice@example.com"
+        },
+        "created_at": "2025-04-11T14:20:00Z",
+        "comment": 2
+      }
+    ]
+  }
+  ```
 
-    ```bash
-    uv pip sync
-    ```
+### Report a Comment
+- **URL**: `/api/comments/<id>/reports`
+- **Method**: `POST`
+- **Auth required**: Yes
+- **Request Body**:
+  ```json
+  {
+    "reason": "Spam content"
+  }
+  ```
+- **Success Response**: `201 Created`
+  ```json
+  {
+    "id": 2,
+    "reason": "Spam content",
+    "user": {
+      "id": 1,
+      "username": "john_doe",
+      "email": "john@example.com"
+    },
+    "created_at": "2025-04-13T15:45:00Z",
+    "comment": 2
+  }
+  ```
 
-    This command will ensure that all dependencies are installed according to the specifications in your `pyproject.toml` and `uv.lock` files.
+### Delete Report
+- **URL**: `/api/projects/reports/<id>` or `/api/comments/reports/<id>`
+- **Method**: `DELETE`
+- **Auth required**: Yes (Owner or Admin)
+- **Success Response**: `200 OK`
+  ```json
+  {
+    "id": 1,
+    "reason": "Inappropriate content",
+    "user": {
+      "id": 3,
+      "username": "alice_jones",
+      "email": "alice@example.com"
+    },
+    "created_at": "2025-04-10T08:20:00Z",
+    "project": 1
+  }
+  ```
 
-3.  **Verify Installation:**
+## Donations
 
-    You can verify that the library has been installed by running:
+### List Project Donations
+- **URL**: `/api/projects/<id>/donations`
+- **Method**: `GET`
+- **Auth required**: No
+- **Success Response**:
+  ```json
+  {
+    "count": 15,
+    "next": null,
+    "previous": null,
+    "results": [
+      {
+        "amount": 500,
+        "project": {
+          "id": 1,
+          "title": "Project Title",
+          "details": "Project description...",
+          "images": [],
+          "total_target": 10000,
+          "start_time": "2025-05-01T00:00:00Z",
+          "end_time": "2025-06-01T00:00:00Z",
+          "user": 1,
+          "tags": ["tech", "education"],
+          "is_featured": false,
+          "rating": 4.5,
+          "total_donations": 2500,
+          "category": 1,
+          "thumbnail_url": "http://example.com/media/thumbnails/project1.jpg",
+          "is_active": true,
+          "created_at": "2025-04-01T12:00:00Z",
+          "category_detail": {...},
+          "backers_count": 15,
+          "review_count": 8,
+          "is_accepted": true
+        },
+        "user": {
+          "id": 2,
+          "username": "jane_smith",
+          "email": "jane@example.com"
+        },
+        "created_at": "2025-04-05T11:30:00Z"
+      }
+    ]
+  }
+  ```
 
-    ```bash
-    uv pip list
-    ```
+### Make a Donation
+- **URL**: `/api/projects/<id>/donations`
+- **Method**: `POST`
+- **Auth required**: Yes
+- **Request Body**:
+  ```json
+  {
+    "amount": 100
+  }
+  ```
+- **Success Response**: `201 Created`
+  ```json
+  {
+    "amount": 100,
+    "project": {
+      "id": 1,
+      "title": "Project Title",
+      "details": "Project description...",
+      "images": [],
+      "total_target": 10000,
+      "start_time": "2025-05-01T00:00:00Z",
+      "end_time": "2025-06-01T00:00:00Z",
+      "user": 1,
+      "tags": ["tech", "education"],
+      "is_featured": false,
+      "rating": 4.5,
+      "total_donations": 2600,
+      "category": 1,
+      "thumbnail_url": "http://example.com/media/thumbnails/project1.jpg",
+      "is_active": true,
+      "created_at": "2025-04-01T12:00:00Z",
+      "category_detail": {...},
+      "backers_count": 16,
+      "review_count": 8,
+      "is_accepted": true
+    },
+    "user": {
+      "id": 1,
+      "username": "john_doe",
+      "email": "john@example.com"
+    },
+    "created_at": "2025-04-13T15:50:00Z"
+  }
+  ```
 
-    This will display a list of installed packages.
-## Important Notes
+### Get Donation Details
+- **URL**: `/api/projects/donation/<id>`
+- **Method**: `GET`
+- **Auth required**: No
+- **Success Response**:
+  ```json
+  {
+    "amount": 500,
+    "project": {
+      "id": 1,
+      "title": "Project Title",
+      "details": "Project description...",
+      "images": [],
+      "total_target": 10000,
+      "start_time": "2025-05-01T00:00:00Z",
+      "end_time": "2025-06-01T00:00:00Z",
+      "user": 1,
+      "tags": ["tech", "education"],
+      "is_featured": false,
+      "rating": 4.5,
+      "total_donations": 2600,
+      "category": 1,
+      "thumbnail_url": "http://example.com/media/thumbnails/project1.jpg",
+      "is_active": true,
+      "created_at": "2025-04-01T12:00:00Z",
+      "category_detail": {...},
+      "backers_count": 16,
+      "review_count": 8,
+      "is_accepted": true
+    },
+    "user": {
+      "id": 2,
+      "username": "jane_smith",
+      "email": "jane@example.com"
+    },
+    "created_at": "2025-04-05T11:30:00Z"
+  }
+  ```
 
-* **`uv.lock` File:** The `uv.lock` file ensures consistent dependency versions across different environments. Do not modify this file manually. If you are adding a new dependency, use `uv pip add <package_name>` and then `uv pip sync`.
-* **`pyproject.toml`:** The `pyproject.toml` file declares the project's dependencies and build system requirements. Modify this file as needed to update your project's dependencies.
-* **`.gitignore`:** Ensure your `.gitignore` file includes `venv/` (if using a virtual environment) and any other sensitive files or directories.
-* **Database Configuration:** Check your `settings.py` file to ensure the database settings are correct for your environment.
-* **Static Files:** If your project uses static files, you may need to run `python manage.py collectstatic` to collect them into a single directory for deployment.
-* **Environment Variables:** For sensitive data like database passwords or API keys, use environment variables instead of hardcoding them in your `settings.py` file.
+## Categories
+
+### List Categories
+- **URL**: `/api/category`
+- **Method**: `GET`
+- **Auth required**: No
+- **Success Response**:
+  ```json
+  [
+    {
+      "id": 1,
+      "title": "Technology",
+      "description": "Tech projects",
+      "created_at": "2025-03-15T09:00:00Z"
+    },
+    {
+      "id": 2,
+      "title": "Art & Culture",
+      "description": "Creative projects related to art and culture",
+      "created_at": "2025-03-15T09:05:00Z"
+    }
+  ]
+  ```
+
+### Create Category
+- **URL**: `/api/category`
+- **Method**: `POST`
+- **Auth required**: Yes (Admin only)
+- **Request Body**:
+  ```json
+  {
+    "title": "Education",
+    "description": "Projects focused on educational initiatives and learning"
+  }
+  ```
+- **Success Response**: `201 Created`
+  ```json
+  {
+    "id": 3,
+    "title": "Education",
+    "description": "Projects focused on educational initiatives and learning",
+    "created_at": "2025-04-13T16:00:00Z"
+  }
+  ```

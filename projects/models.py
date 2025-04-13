@@ -39,7 +39,7 @@ class Project(models.Model):
         return cls.objects.filter(is_active=True)
 
     @classmethod
-    def AcceptedProjects(cls):
+    def getAcceptedProjects(cls):
         return cls.getAvtiveProjects().filter(is_accepted=True)
 
     @classmethod
@@ -77,19 +77,19 @@ class Project(models.Model):
         category=None,
         tags=None,
         user=None,
+        user_id=None,
         limit=None,
         is_top=None,
         latest=None,
         search=None,
     ):
-        if user:
-            if user.is_staff:
-                print("asdasd")
-                projects = cls.objects.all()
-            else:
-                projects = cls.getUserProjects(user)
+        if user and user.is_staff:
+            projects = cls.objects.all()
         else:
-            projects = cls.getAvtiveProjects()
+            if user_id:
+                projects = cls.getUserProjects(user_id)
+            else:
+                projects = cls.getAcceptedProjects()
 
         if is_featured == "true":
             projects = projects.filter(is_featured=True)
@@ -99,7 +99,7 @@ class Project(models.Model):
                     category_id = int(category)
                     projects = projects.filter(category=category_id)
             except (ValueError, TypeError):
-                projects = projects.filter(category=-1)  # TODO Check Later
+                projects = projects.filter(category=-1)
 
         if tags:
             projects = projects.filter(tags__name__in=tags.split(","))
@@ -144,6 +144,12 @@ class Project(models.Model):
 
     def get_total_donations(self):
         return self.donations.aggregate(total=models.Sum("amount"))["total"]
+
+    def get_raters_count(self):
+        return self.ratings.count()
+
+    def get_donors_count(self):
+        return self.donations.values("user").distinct().count()
 
 
 class ProjectImages(models.Model):

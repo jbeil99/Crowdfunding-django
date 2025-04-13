@@ -117,6 +117,9 @@ class ProjectDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
     total_donations = serializers.SerializerMethodField()
     category = CategorySerializer()
     thumbnail = serializers.SerializerMethodField()
+    backers_count = serializers.SerializerMethodField()
+    review_count = serializers.SerializerMethodField()
+    rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
@@ -135,8 +138,11 @@ class ProjectDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
             "total_donations",
             "category",
             "thumbnail",
+            "backers_count",
+            "review_count",
             "is_active",
             "is_accepted",
+            "rating",
         ]
         read_only_fields = [
             "id",
@@ -154,6 +160,15 @@ class ProjectDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
             return request.build_absolute_uri(obj.thumbnail.url)
         return obj.thumbnail.url
 
+    def get_backers_count(self, obj):
+        return obj.get_donors_count()
+
+    def get_review_count(self, obj):
+        return obj.get_raters_count()
+
+    def get_rating(slef, obj):
+        return obj.get_average_rating()
+
 
 class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
     images = serializers.ListField(
@@ -169,6 +184,8 @@ class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
     thumbnail = serializers.ImageField(write_only=True, required=True)
     category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all())
     category_detail = CategorySerializer(source="category", read_only=True)
+    backers_count = serializers.SerializerMethodField()
+    review_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
@@ -191,6 +208,8 @@ class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
             "is_active",
             "created_at",
             "category_detail",
+            "backers_count",
+            "review_count",
             "is_accepted",
         ]
         read_only_fields = [
@@ -213,6 +232,12 @@ class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
         if request:
             return request.build_absolute_uri(obj.thumbnail.url)
         return obj.thumbnail.url
+
+    def get_backers_count(self, obj):
+        return obj.get_donors_count()
+
+    def get_review_count(self, obj):
+        return obj.get_raters_count()
 
     def validate_title(self, value):
         if len(value) < 5:
@@ -297,7 +322,6 @@ class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
         return instance
 
 
-# TODO: Add serializer for admin view to get reports
 class DonationSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     project = ProjectStoreSerializer(read_only=True)

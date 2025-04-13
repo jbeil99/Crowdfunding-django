@@ -5,7 +5,6 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
 from .models import (
     Project,
-    ProjectImages,
     Comments,
     Ratting,
     Category,
@@ -16,7 +15,6 @@ from .models import (
 from .serializers import (
     ProjectStoreSerializer,
     ProjectDetailSerializer,
-    ImageSerializer,
     CommentSerializer,
     RattingSerializer,
     CommentsReportsSerializer,
@@ -29,13 +27,6 @@ from rest_framework.pagination import PageNumberPagination
 from .permissions import IsOwnerOrAdmin
 
 
-class CustomPagination(PageNumberPagination):
-    page_size = 10
-    page_size_query_param = "page_size"
-    max_page_size = 100  #
-
-
-# TODO: Change the payload user  to the request user
 class ProjectListCreateAPIView(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
@@ -47,6 +38,7 @@ class ProjectListCreateAPIView(APIView):
     def get(self, request):
         is_featured = request.query_params.get("is_featured")
         category = request.query_params.get("category")
+        user_id = request.query_params.get("user_id")
         user = request.user if request.user.is_authenticated else None
         limit = request.query_params.get("limit")
         is_top = request.query_params.get("is_top")
@@ -62,8 +54,9 @@ class ProjectListCreateAPIView(APIView):
             is_top=is_top,
             latest=latest,
             search=search,
+            user_id=user_id,
         )
-        paginator = CustomPagination()
+        paginator = PageNumberPagination()
         paginated_Projects = paginator.paginate_queryset(projects, request)
         serializer = ProjectStoreSerializer(
             paginated_Projects, many=True, context={"request": request}
@@ -137,48 +130,6 @@ class ProjectDetailAPIView(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 
-class ProjectImageUploadAPIView(APIView):
-    parser_classes = [MultiPartParser, FormParser]
-    permission_classes = [IsAuthenticated(), IsOwnerOrAdmin()]
-
-    def post(self, request, pk):
-        project = get_object_or_404(Project, pk=pk)
-        images = request.FILES.getlist("images")
-
-        if not images:
-            return Response(
-                {"error": "No images provided"}, status=status.HTTP_400_BAD_REQUEST
-            )
-
-        created_images = []
-        for image_file in images:
-            img = ProjectImages.objects.create(project=project, image=image_file)
-            created_images.append(img)
-
-        serializer = ImageSerializer(created_images, many=True)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-
-class ImageDetailAPIView(APIView):
-    def get_permissions(self):
-        if self.request.method == "GET":
-            return [AllowAny()]
-        return [IsAuthenticated(), IsOwnerOrAdmin()]
-
-    def get_object(self, pk):
-        return get_object_or_404(ProjectImages, pk=pk)
-
-    def get(self, request, pk):
-        image = self.get_object(pk)
-        serializer = ImageSerializer(image)
-        return Response(serializer.data)
-
-    def delete(self, request, pk):
-        image = self.get_object(pk)
-        image.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
 # Comments
 class CommentStore(APIView):
     def get_permissions(self):
@@ -189,7 +140,7 @@ class CommentStore(APIView):
     def get(self, request, pk):
         project = get_object_or_404(Project, pk=pk)
         comments = Comments.objects.filter(project=project)
-        paginator = CustomPagination()
+        paginator = PageNumberPagination()
         paginated_comments = paginator.paginate_queryset(comments, request)
         serializer = CommentSerializer(
             paginated_comments, many=True, context={"request": request}
@@ -238,7 +189,7 @@ class RattingStore(APIView):
     def get(self, request, pk):
         project = get_object_or_404(Project, pk=pk)
         ratings = Ratting.objects.filter(project=project)
-        paginator = CustomPagination()
+        paginator = PageNumberPagination()
         paginated_ratings = paginator.paginate_queryset(ratings, request)
         serializer = RattingSerializer(
             paginated_ratings, many=True, context={"request": request}
@@ -284,9 +235,13 @@ class CommentsReportsStore(APIView):
             return [AllowAny()]
         return [IsAuthenticated()]
 
-    def get(self, request):
-        reports = CommentsReports.objects.all()
-        paginator = CustomPagination()
+    def get(self, request, pk):
+        if pk == 0:
+            reports = CommentsReports.objects.all()
+        else:
+            reports = CommentsReports.objects.filter(pk=pk)
+
+        paginator = PageNumberPagination()
         paginated_reports = paginator.paginate_queryset(reports, request)
         serializer = CommentsReportsSerializer(
             paginated_reports, many=True, context={"request": request}
@@ -335,7 +290,7 @@ class ProjectReportsStore(APIView):
     def get(self, request, pk):
         project = get_object_or_404(Project, pk=pk)
         reports = ProjectsReports.objects.filter(project=project)
-        paginator = CustomPagination()
+        paginator = PageNumberPagination()
         paginated_reports = paginator.paginate_queryset(reports, request)
         serializer = ProjectsReportsSerializer(
             paginated_reports, many=True, context={"request": request}
@@ -403,7 +358,7 @@ class DonationStore(APIView):
     def get(self, request, pk):
         project = get_object_or_404(Project, pk=pk)
         donations = Donation.objects.filter(project=project)
-        paginator = CustomPagination()
+        paginator = PageNumberPagination()
         paginated_donations = paginator.paginate_queryset(donations, request)
         serializer = DonationSerializer(
             paginated_donations, many=True, context={"request": request}
@@ -434,13 +389,6 @@ class DonationDetailAPIView(APIView):
         serializer = DonationSerializer(rate)
         return Response(serializer.data)
 
-    # def delete(self, request, pk):
-    #     rate = self.get_object(pk)
-    #     serializer = RattingSerializer(rate)
-    #     data = serializer.data
-    #     rate.delete()
-    #     return Response(data, status=status.HTTP_200_OK)
-
 
 # Cateory
 class CategoryAPIView(APIView):
@@ -464,7 +412,6 @@ class CategoryAPIView(APIView):
         return Response(serialzier.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# TODO: some projects fields ony admin can change it ( may be a differnet serializer)
 class ProjectFeatured(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
 

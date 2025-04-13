@@ -2,8 +2,6 @@ from django.urls import path
 from .views import (
     ProjectListCreateAPIView,
     ProjectDetailAPIView,
-    ProjectImageUploadAPIView,
-    ImageDetailAPIView,
     CommentStore,
     CommentDetailAPIView,
     RattingDetailAPIView,
@@ -27,12 +25,6 @@ urlpatterns = [
         ProjectFeatured.as_view(),
         name="project-featured",
     ),
-    path(
-        "projects/<int:pk>/images",
-        ProjectImageUploadAPIView.as_view(),
-        name="project-images-upload",
-    ),
-    path("projects/images/<int:pk>", ImageDetailAPIView.as_view(), name="image-detail"),
     path(
         "projects/<int:pk>/comments",
         CommentStore.as_view(),
@@ -64,7 +56,7 @@ urlpatterns = [
         name="project-reports-detail",
     ),
     path(
-        "comments/reports",
+        "comments/<int:pk>/reports",
         CommentsReportsStore.as_view(),
         name="comments-reports-store",
     ),
