@@ -21,7 +21,6 @@ from .serializers import (
     RattingSerializer,
     CommentsReportsSerializer,
     ProjectsReportsSerializer,
-    ProjectCancellationSerializer,
     DonationSerializer,
     CategorySerializer,
 )
@@ -48,7 +47,7 @@ class ProjectListCreateAPIView(APIView):
     def get(self, request):
         is_featured = request.query_params.get("is_featured")
         category = request.query_params.get("category")
-        user = request.query_params.get("user")
+        user = request.user if request.user.is_authenticated else None
         limit = request.query_params.get("limit")
         is_top = request.query_params.get("is_top")
         latest = request.query_params.get("latest")
@@ -58,13 +57,12 @@ class ProjectListCreateAPIView(APIView):
             is_featured=is_featured,
             category=category,
             tags=tags,
-            user_id=user,
+            user=user,
             limit=limit,
             is_top=is_top,
             latest=latest,
             search=search,
         )
-
         paginator = CustomPagination()
         paginated_Projects = paginator.paginate_queryset(projects, request)
         serializer = ProjectStoreSerializer(
@@ -91,9 +89,13 @@ class ProjectDetailAPIView(APIView):
     def get_permissions(self):
         if self.request.method == "GET":
             return [AllowAny()]
+        if self.request.method == "DELETE":
+            return [IsAuthenticated(), IsAdminUser()]
         return [IsAuthenticated(), IsOwnerOrAdmin()]
 
     def get_object(self, pk):
+        if self.request.user.is_staff:
+            return get_object_or_404(Project, pk=pk)
         return get_object_or_404(Project, pk=pk, is_active=True)
 
     def get(self, request, pk):
@@ -103,7 +105,9 @@ class ProjectDetailAPIView(APIView):
 
     def put(self, request, pk):
         project = self.get_object(pk)
-        serializer = ProjectStoreSerializer(project, data=request.data)
+        serializer = ProjectStoreSerializer(
+            project, data=request.data, context={"request": request}
+        )
         if serializer.is_valid():
             serializer.save()
             result_serializer = ProjectDetailSerializer(
@@ -325,7 +329,7 @@ class CommentsReportsDetailAPIView(APIView):
 class ProjectReportsStore(APIView):
     def get_permissions(self):
         if self.request.method == "GET":
-            return [AllowAny()]
+            return [IsAdminUser()]
         return [IsAuthenticated()]
 
     def get(self, request, pk):
@@ -372,7 +376,8 @@ class CancelProjectView(APIView):
 
     def patch(self, request, pk):
         project = get_object_or_404(Project, pk=pk)
-        serializer = ProjectCancellationSerializer(
+        print(request.user, request.user.is_staff)
+        serializer = ProjectStoreSerializer(
             project,
             data=request.data,
             partial=True,
@@ -460,3 +465,20 @@ class CategoryAPIView(APIView):
 
 
 # TODO: some projects fields ony admin can change it ( may be a differnet serializer)
+class ProjectFeatured(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def patch(self, request, pk):
+        project = get_object_or_404(Project, pk=pk)
+        serializer = ProjectStoreSerializer(
+            project,
+            data=request.data,
+            partial=True,
+            context={"request": request, "project": project},
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

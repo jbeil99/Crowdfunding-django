@@ -70,10 +70,12 @@ class CommentsReportsSerializer(serializers.ModelSerializer):
 
 
 class ProjectsReportsSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
     class Meta:
         model = ProjectsReports
         fields = "__all__"
-        read_only_fields = ["id", "created_at", "user", "project"]
+        read_only_fields = ["id", "created_at", "project"]
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -134,11 +136,13 @@ class ProjectDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
             "category",
             "thumbnail",
             "is_active",
+            "is_accepted",
         ]
         read_only_fields = [
             "id",
             "created_at",
             "user",
+            "is_accepted",
         ]
 
     def get_total_donations(self, obj):
@@ -187,8 +191,16 @@ class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
             "is_active",
             "created_at",
             "category_detail",
+            "is_accepted",
         ]
-        read_only_fields = ["id", "created_at", "user", "is_active", "created_at"]
+        read_only_fields = [
+            "id",
+            "created_at",
+            "user",
+            "is_active",
+            "is_accepted",
+            "created_at",
+        ]
 
     def get_rating(slef, obj):
         return obj.get_average_rating()
@@ -262,34 +274,27 @@ class ProjectStoreSerializer(TaggitSerializer, serializers.ModelSerializer):
 
         return project
 
+    def update(self, instance, validated_data):
+        images_data = validated_data.pop("images", None)
+        tags_data = validated_data.pop("tags", None)
 
-class ProjectCancellationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Project
-        fields = ["is_active"]
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
 
-    def validate(self, data):
-        project = self.context.get("project")
-        request = self.context.get("request")
+        instance.save()
 
-        if not project or not request:
-            raise serializers.ValidationError(
-                "Invalid context: missing project or request."
-            )
+        if tags_data is not None:
+            instance.tags.set(tags_data)
 
-        user = request.user
+        if (
+            images_data is not None and images_data
+        ):  # Only modify images if data was provided
+            instance.images.all().delete()
 
-        if project.user != user:
-            raise serializers.ValidationError(
-                "Only the project owner can cancel this project."
-            )
+            for image_data in images_data:
+                ProjectImages.objects.create(project=instance, image=image_data)
 
-        if not project.canBeCanceld():
-            raise serializers.ValidationError(
-                "Cannot cancel a project that has reached 25% or more of its funding goal."
-            )
-
-        return data
+        return instance
 
 
 # TODO: Add serializer for admin view to get reports

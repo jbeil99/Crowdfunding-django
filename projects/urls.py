@@ -16,19 +16,23 @@ from .views import (
     DonationStore,
     DonationDetailAPIView,
     CategoryAPIView,
+    ProjectFeatured,
 )
 
 urlpatterns = [
-    path("projects/", ProjectListCreateAPIView.as_view(), name="project-list-create"),
+    path("projects", ProjectListCreateAPIView.as_view(), name="project-list-create"),
     path("projects/<int:pk>/", ProjectDetailAPIView.as_view(), name="project-detail"),
     path(
-        "projects/<int:pk>/images/",
+        "projects/<int:pk>/featured",
+        ProjectFeatured.as_view(),
+        name="project-featured",
+    ),
+    path(
+        "projects/<int:pk>/images",
         ProjectImageUploadAPIView.as_view(),
         name="project-images-upload",
     ),
-    path(
-        "projects/images/<int:pk>/", ImageDetailAPIView.as_view(), name="image-detail"
-    ),
+    path("projects/images/<int:pk>", ImageDetailAPIView.as_view(), name="image-detail"),
     path(
         "projects/<int:pk>/comments",
         CommentStore.as_view(),

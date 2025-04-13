@@ -3,7 +3,6 @@ from taggit.managers import TaggableManager
 from accounts.models import User
 from decimal import Decimal
 from django.core.validators import MinValueValidator, MaxValueValidator
-from django.shortcuts import get_object_or_404
 
 
 class Category(models.Model):
@@ -23,7 +22,7 @@ class Project(models.Model):
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
-    is_active = models.BooleanField(default=True)  # TODO: Change later
+    is_active = models.BooleanField(default=True)
     is_accepted = models.BooleanField(default=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="projects")
     is_featured = models.BooleanField(default=False)
@@ -77,14 +76,13 @@ class Project(models.Model):
         is_featured=None,
         category=None,
         tags=None,
-        user_id=None,
+        user=None,
         limit=None,
         is_top=None,
         latest=None,
         search=None,
     ):
-        if user_id:
-            user = get_object_or_404(User, pk=user_id)
+        if user:
             if user.is_staff:
                 print("asdasd")
                 projects = cls.objects.all()
