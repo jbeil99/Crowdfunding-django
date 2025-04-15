@@ -83,7 +83,7 @@ class Project(models.Model):
         latest=None,
         search=None,
     ):
-        projects = cls.getAvtiveProjects()
+        projects = cls.getAcceptedProjects()
         if user and user.is_staff:
             projects = cls.objects.all()
         else:
@@ -91,13 +91,13 @@ class Project(models.Model):
                 projects = cls.getUserProjects(user_id)
 
         if is_featured == "true":
-            projects = cls.getAvtiveProjects().filter(is_featured=True)
+            projects = cls.getAcceptedProjects().filter(is_featured=True)
 
         if tags:
-            projects = cls.getAvtiveProjects().filter(tags__name__in=tags.split(","))
+            projects = cls.getAcceptedProjects().filter(tags__name__in=tags.split(","))
 
         if search:
-            projects = cls.getAvtiveProjects().filter(
+            projects = cls.getAcceptedProjects().filter(
                 models.Q(title__icontains=search) | models.Q(details__icontains=search)
             )
 
@@ -105,16 +105,16 @@ class Project(models.Model):
             if limit:
                 try:
                     limit = int(limit)
-                    projects = cls.getAvtiveProjects().order_by("-created_at")[:limit]
+                    projects = cls.getAcceptedProjects().order_by("-created_at")[:limit]
                 except (ValueError, TypeError):
                     pass
             else:
-                projects = cls.getAvtiveProjects().order_by("-created_at")[:5]
+                projects = cls.getAcceptedProjects().order_by("-created_at")[:5]
 
         if limit:
             try:
                 limit = int(limit)
-                projects = cls.getAvtiveProjects()[:limit]
+                projects = cls.getAcceptedProjects()[:limit]
             except (ValueError, TypeError):
                 pass
 

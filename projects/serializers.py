@@ -337,3 +337,32 @@ class DonationSerializer(serializers.ModelSerializer):
                 "Donation amount can't be less than or equal to 0"
             )
         return value
+
+
+class ProjectCancellationSerializer(serializers.ModelSerializer):
+    class Meta:
+        fields = ["is_active"]
+        model = Project
+
+    def validate(self, data):
+        project = self.context.get("project")
+        user = self.context.get("request").user
+        is_active = data.get("is_active")
+
+        if project.user != user and not user.is_staff:
+            raise serializers.ValidationError(
+                "Only the project owner can cancel a project."
+            )
+
+        if not project.canBeCanceld() and not is_active:
+            raise serializers.ValidationError(
+                "Cannot cancel project that has reached 25% or more of its funding goal."
+            )
+
+        return data
+
+
+class ProjectAcceptSerializer(serializers.ModelSerializer):
+    class Meta:
+        fields = ["is_accepted"]
+        model = Project

@@ -21,6 +21,8 @@ from .serializers import (
     ProjectsReportsSerializer,
     DonationSerializer,
     CategorySerializer,
+    ProjectCancellationSerializer,
+    ProjectAcceptSerializer,
 )
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.pagination import PageNumberPagination
@@ -353,7 +355,7 @@ class CancelProjectView(APIView):
 
     def patch(self, request, pk):
         project = get_object_or_404(Project, pk=pk)
-        serializer = ProjectStoreSerializer(
+        serializer = ProjectCancellationSerializer(
             project,
             data=request.data,
             partial=True,
@@ -361,7 +363,7 @@ class CancelProjectView(APIView):
         )
 
         if serializer.is_valid():
-            project = serializer.save(is_active=False)
+            project = serializer.save()
             project_result = ProjectStoreSerializer(project)
 
             return Response(project_result.data, status=status.HTTP_200_OK)
@@ -445,7 +447,24 @@ class ProjectFeatured(APIView):
             project,
             data=request.data,
             partial=True,
-            context={"request": request, "project": project},
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ProjectAccepted(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def patch(self, request, pk):
+        project = get_object_or_404(Project, pk=pk)
+        serializer = ProjectAcceptSerializer(
+            project,
+            data=request.data,
+            partial=True,
         )
 
         if serializer.is_valid():
